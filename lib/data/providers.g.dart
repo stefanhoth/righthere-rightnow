@@ -149,6 +149,47 @@ final class CalendarReaderProvider
 
 String _$calendarReaderHash() => r'2b7a5662cd37a99e714893405d5e5277f6e7806a';
 
+@ProviderFor(runTimeStorage)
+final runTimeStorageProvider = RunTimeStorageProvider._();
+
+final class RunTimeStorageProvider
+    extends $FunctionalProvider<RunTimeStorage, RunTimeStorage, RunTimeStorage>
+    with $Provider<RunTimeStorage> {
+  RunTimeStorageProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'runTimeStorageProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$runTimeStorageHash();
+
+  @$internal
+  @override
+  $ProviderElement<RunTimeStorage> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  RunTimeStorage create(Ref ref) {
+    return runTimeStorage(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(RunTimeStorage value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<RunTimeStorage>(value),
+    );
+  }
+}
+
+String _$runTimeStorageHash() => r'331efeecd6fc8b02ddb1438bc38dfac516c5050e';
+
 @ProviderFor(appDatabase)
 final appDatabaseProvider = AppDatabaseProvider._();
 

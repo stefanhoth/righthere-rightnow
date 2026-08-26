@@ -120,4 +120,13 @@ void main() {
     expect(find.text('That token was rejected by Todoist.'), findsOneWidget);
     expect(find.text('No token saved yet.'), findsOneWidget);
   });
+
+  testWidgets('shows the configured briefing time and its next run', (
+    tester,
+  ) async {
+    await _pumpSettingsScreen(tester, tokenIsValid: true);
+
+    expect(find.byKey(const Key('storedRunTime')), findsOneWidget);
+    expect(find.byKey(const Key('nextScheduledRun')), findsOneWidget);
+  });
 }

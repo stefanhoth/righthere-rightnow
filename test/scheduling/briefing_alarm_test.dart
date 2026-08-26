@@ -4,6 +4,7 @@ import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:righthere_rightnow/scheduling/briefing_alarm.dart';
+import 'package:righthere_rightnow/scheduling/run_time.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -33,7 +34,10 @@ void main() {
   });
 
   test('schedules an exact, wake, reboot-persistent alarm', () async {
-    await scheduleNextBriefingAlarm(now: DateTime(2026, 8, 26, 4));
+    await scheduleNextBriefingAlarm(
+      now: DateTime(2026, 8, 26, 4),
+      runTime: RunTime.defaultValue,
+    );
 
     expect(calls, hasLength(1));
     expect(calls.single.method, 'Alarm.oneShotAt');
@@ -62,7 +66,10 @@ void main() {
   });
 
   test("re-arms for tomorrow when today's run time has passed", () async {
-    await scheduleNextBriefingAlarm(now: DateTime(2026, 8, 26, 6));
+    await scheduleNextBriefingAlarm(
+      now: DateTime(2026, 8, 26, 6),
+      runTime: RunTime.defaultValue,
+    );
 
     final args = calls.single.arguments as List<dynamic>;
     expect(

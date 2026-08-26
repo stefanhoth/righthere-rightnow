@@ -1,6 +1,9 @@
 import 'package:device_calendar_plus/device_calendar_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+import 'package:righthere_rightnow/scheduling/run_time.dart';
+import 'package:righthere_rightnow/ui/settings/run_time_controller.dart';
 import 'package:righthere_rightnow/ui/settings/settings_controller.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -24,6 +27,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final entryStatus = ref.watch(tokenEntryControllerProvider);
     final storedToken = ref.watch(storedTodoistTokenProvider);
     final calendarPermission = ref.watch(calendarPermissionStatusProvider);
+    final storedRunTime = ref.watch(storedRunTimeProvider);
+    final nextScheduledRun = ref.watch(nextScheduledRunProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
@@ -99,9 +104,57 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             loading: () => const SizedBox.shrink(),
             error: (_, _) => const Text('Could not read calendar permission.'),
           ),
+          const SizedBox(height: 24),
+          Text('Briefing time', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          storedRunTime.when(
+            data: (runTime) => Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _describeTimeOfDay(runTime.hour, runTime.minute),
+                    key: const Key('storedRunTime'),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => _pickRunTime(context, runTime),
+                  child: const Text('Change'),
+                ),
+              ],
+            ),
+            loading: () => const SizedBox.shrink(),
+            error: (_, _) => const Text('Could not read the briefing time.'),
+          ),
+          nextScheduledRun.when(
+            data: (next) => Text(
+              'Next run: ${DateFormat.yMMMd().add_jm().format(next)}',
+              key: const Key('nextScheduledRun'),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            loading: () => const SizedBox.shrink(),
+            error: (_, _) => const SizedBox.shrink(),
+          ),
         ],
       ),
     );
+  }
+
+  Future<void> _pickRunTime(BuildContext context, RunTime current) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: current.hour, minute: current.minute),
+    );
+    if (picked == null || !context.mounted) {
+      return;
+    }
+    await ref
+        .read(runTimeControllerProvider.notifier)
+        .updateRunTime(RunTime(hour: picked.hour, minute: picked.minute));
+  }
+
+  String _describeTimeOfDay(int hour, int minute) {
+    final formatted = TimeOfDay(hour: hour, minute: minute).format(context);
+    return 'Runs daily at $formatted';
   }
 
   String _describeCalendarPermission(CalendarPermissionStatus status) {
