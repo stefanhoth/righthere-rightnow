@@ -3,6 +3,26 @@
 Smaller calls that shaped the repo but didn't warrant a full ADR. Newest
 first. Add an entry in the same PR that makes the decision.
 
+## 2026-08-26 — Fixed run time instead of reading the phone's wake alarm
+
+The Briefing Run fires at a configurable time, defaulting to 05:30, rather
+than tracking `AlarmManager.getNextAlarmClock()`.
+
+Reading the Clock app's alarm and firing 20 minutes before is strictly better
+behaviour — it needs no permission and follows travel, weekends and lie-ins
+automatically. It also costs a platform channel, a manifest receiver for
+`ACTION_NEXT_ALARM_CLOCK_CHANGED`, and re-arm-on-change logic, for a benefit
+that only materialises when the wake time actually moves.
+
+Backlog, not discarded. The trigger to revisit is the first morning the fixed
+time is wrong — an early flight, or a weekend lie-in where the briefing is
+already stale by the time it's read.
+
+Note the exact alarm itself was **kept**: `USE_EXACT_ALARM` is one manifest
+line at protection level `normal` for a sideloaded app, so relaxing it would
+have saved nothing while letting Doze push the run past wake-up. See
+[ADR-0002](adr/0002-exact-alarm-and-foreground-service.md).
+
 ## 2026-08-26 — No emulator-based E2E in CI
 
 CI gates on unit and widget tests only. An Android emulator job needs a

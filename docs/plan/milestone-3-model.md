@@ -1,13 +1,16 @@
 # Milestone 3 — The model ranks and phrases
 
-**Outcome:** Gemini Nano orders the Candidate Set and writes one framing line;
-drag-to-reorder captures corrections; a replay harness makes prompt changes
-testable against stored history.
+**Outcome:** Gemini Nano re-ranks the Daily Agenda and writes a framing line
+**when the app opens**; drag-to-reorder captures corrections; a replay harness
+makes prompt changes testable against stored history.
 
-Read [ADR-0003](../adr/0003-llm-ranks-under-a-permutation-contract.md) and
-[ADR-0004](../adr/0004-gemini-nano-behind-an-engine-interface.md) first.
-**Do not start before Spike 0.1 has a recorded result** — if inference cannot
-run in the foreground-service isolate, the engine choice changes.
+Read [ADR-0003](../adr/0003-llm-ranks-under-a-permutation-contract.md),
+[ADR-0004](../adr/0004-gemini-nano-behind-an-engine-interface.md) and
+[ADR-0006](../adr/0006-inference-runs-when-the-app-opens.md) first.
+
+**Inference runs in the foreground only.** The morning Briefing Run fetches
+and ranks deterministically; the model never runs in a background isolate.
+Spike 0.1 is therefore *not* a prerequisite for this milestone.
 
 ---
 
@@ -34,7 +37,9 @@ leak into `briefing/` or `domain/`.
 - `isAvailable()` returns false gracefully on an unsupported device rather than
   throwing.
 - Every call site has a working path when `isAvailable()` is false.
-- Engine cold-start time is logged (Spike 0.1 measured this; confirm it holds).
+- Engine cold-start time is logged. Expect it to be slow — Google documents
+  LiteRT-LM initialisation at up to ten seconds — so initialise off the UI
+  thread and keep the deterministic agenda on screen while it warms.
 
 ---
 
@@ -77,6 +82,10 @@ is what makes that acceptable — never trust it.
 Run inference with a **timeout**. If it expires, fall back. A late agenda is
 worse than a deterministic one.
 
+Because this runs at app-open, the deterministic ranking is already on screen:
+render it immediately, then reorder when the model returns. Never make the
+user wait on a spinner to see their agenda.
+
 **Acceptance criteria**
 
 - Unit tests for: valid permutation; hallucinated ID; missing IDs; unparseable
@@ -86,20 +95,26 @@ worse than a deterministic one.
 
 ---
 
-## Task 3.4 — The framing line
+## Task 3.4 — The framing line, in the app
 
-One generated sentence beneath the verbatim Focus Pull titles in the
-notification (the Q14 answer: hybrid, facts verbatim, model adds framing).
+One generated sentence at the top of the Daily Agenda screen — "heavy meeting
+day, protect the morning for the roadmap draft".
 
-- Titles stay verbatim. Only the framing line is generated.
+**Not in the notification.** The lock screen shows verbatim titles only,
+because no model runs before it is posted
+([ADR-0006](../adr/0006-inference-runs-when-the-app-opens.md)).
+
 - Hard length cap; truncate rather than wrap.
-- If inference fails or is unavailable, **omit the line** — the notification
-  still works.
+- If inference fails or is unavailable, **omit the line** — the screen still
+  works, and the deterministic agenda is unaffected.
+- Generate once per Briefing Run and cache it; do not re-run on every rebuild
+  of the widget.
 
 **Acceptance criteria**
 
-- Notification renders correctly with and without the framing line.
-- Failure never blocks or delays the notification.
+- The screen renders correctly with and without the framing line.
+- Inference failure never blocks the agenda from rendering.
+- Reopening the app does not trigger a second inference for the same run.
 
 ---
 

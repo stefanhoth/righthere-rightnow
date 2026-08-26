@@ -4,18 +4,25 @@ Two assumptions are undocumented and could invalidate later work. Resolve both
 before building on them. Spike code is throwaway — put it behind a debug screen
 or a scratch branch, and do not let it set architectural precedent.
 
-Neither spike blocks Milestone 1. Do them before Milestone 3.
+Neither spike blocks anything. Task 0.2 is worth five minutes before Milestone
+1; Task 0.1 is now optional.
 
 ---
 
 ## Task 0.1 — Can inference run inside the foreground-service isolate?
 
-**Why this matters:** ADR-0004 assumes Gemini Nano can be invoked from the
-background isolate that `flutter_foreground_task` runs inside a foreground
-service. The ML Kit path is platform-channel based and needs a live Flutter
-engine. No documentation confirms this works. If it does not, ADR-0004 flips to
-LiteRT-LM (pure `dart:ffi`, which should run in any isolate) and the model
-becomes a ~0.5–2.6 GB runtime download.
+> **No longer a blocker.**
+> [ADR-0006](../adr/0006-inference-runs-when-the-app-opens.md) moved inference
+> out of the background entirely — the model now runs at app-open, in the
+> foreground. This spike only matters again if the notification's generated
+> framing line is ever restored. Skip it unless that comes back.
+
+**Why it mattered:** ADR-0004 originally assumed Gemini Nano could be invoked
+from the background isolate that `flutter_foreground_task` runs inside a
+foreground service. The ML Kit path is platform-channel based and needs a live
+Flutter engine. No documentation confirms this works. If it does not, ADR-0004
+flips to LiteRT-LM (pure `dart:ffi`, which should run in any isolate) and the
+model becomes a ~0.5–2.6 GB runtime download.
 
 **Steps**
 

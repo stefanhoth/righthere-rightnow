@@ -23,8 +23,9 @@ Nano exposes no native tool-calling API, so function calling through this engine
 is prompt-based. This is tolerable only because of the permutation contract in
 ADR-0003, which validates output rather than trusting it.
 
-**Unverified, and the first thing to spike:** whether either engine runs inside
-the foreground-service isolate. The LiteRT-LM path is pure `dart:ffi` and should
-run in any isolate; the ML Kit path is platform-channel based and needs a live
-Flutter engine, which `flutter_foreground_task` is expected to provide. Neither
-is documented. If Nano cannot run there, this decision flips to LiteRT-LM.
+~~**Unverified, and the first thing to spike:** whether either engine runs
+inside the foreground-service isolate.~~ **Superseded by
+[ADR-0006](0006-inference-runs-when-the-app-opens.md):** inference no longer
+runs in the background at all, so this is no longer a risk to this decision.
+It becomes relevant again only if the notification's generated framing line is
+ever restored.
