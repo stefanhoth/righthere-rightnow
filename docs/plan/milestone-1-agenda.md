@@ -21,8 +21,23 @@ flutter_secure_storage: ^9.2.4
 device_calendar_plus: ^0.8.0
 http: ^1.2.0
 intl
-dev: build_runner, drift_dev, riverpod_generator, custom_lint, riverpod_lint, flutter_lints
+dev: build_runner, drift_dev, riverpod_generator, mocktail
 ```
+
+`very_good_analysis` is already wired up — do not add `flutter_lints`.
+
+> **`custom_lint` is archived — do not add it.** Dart 3.10+ ships a
+> first-party analyzer plugin system using a **top-level `plugins:` key**,
+> and `riverpod_lint` has already migrated to it. Enable Riverpod's lints with:
+>
+> ```yaml
+> plugins:
+>   riverpod_lint: ^3.1.8
+> ```
+>
+> in `analysis_options.yaml` — *not* as a `dev_dependency` with a separate
+> `dart run custom_lint` step. Every tutorial written before 2026 gets this
+> wrong. Plugin lints are disabled by default and must be enabled explicitly.
 
 **Structure** — create these directories with a placeholder each:
 

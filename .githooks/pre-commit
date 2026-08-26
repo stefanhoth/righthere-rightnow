@@ -1,0 +1,13 @@
+#!/bin/sh
+# Fast checks only. Full test suite runs on pre-push.
+set -e
+
+staged=$(git diff --cached --name-only --diff-filter=ACM | grep '\.dart$' || true)
+[ -z "$staged" ] && exit 0
+
+echo "pre-commit: formatting staged Dart files"
+echo "$staged" | xargs dart format
+echo "$staged" | xargs git add
+
+echo "pre-commit: analysing"
+flutter analyze --fatal-infos --fatal-warnings lib test
