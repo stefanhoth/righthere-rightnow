@@ -1,5 +1,6 @@
 import 'package:device_calendar_plus/device_calendar_plus.dart';
 import 'package:righthere_rightnow/data/calendar/calendar_exception.dart';
+import 'package:righthere_rightnow/data/calendar/calendar_rsvp_channel.dart';
 import 'package:righthere_rightnow/domain/agenda_item.dart';
 import 'package:righthere_rightnow/domain/response_status.dart';
 
@@ -9,10 +10,14 @@ import 'package:righthere_rightnow/domain/response_status.dart';
 /// already expanded into one row per occurrence -- this class never expands
 /// an RRULE itself.
 class CalendarReader {
-  CalendarReader({DeviceCalendar? deviceCalendar})
-    : _deviceCalendar = deviceCalendar ?? DeviceCalendar();
+  CalendarReader({
+    DeviceCalendar? deviceCalendar,
+    CalendarRsvpChannel? rsvpChannel,
+  }) : _deviceCalendar = deviceCalendar ?? DeviceCalendar(),
+       _rsvpChannel = rsvpChannel ?? CalendarRsvpChannel();
 
   final DeviceCalendar _deviceCalendar;
+  final CalendarRsvpChannel _rsvpChannel;
 
   Future<CalendarPermissionStatus> requestPermission() {
     return _deviceCalendar.requestPermissions();
@@ -21,10 +26,8 @@ class CalendarReader {
   /// Fetches Commitments overlapping the half-open range `[start, end)`,
   /// skipping calendars the user has hidden.
   ///
-  /// RSVP response and organiser status are not available through this
-  /// plugin (see ADR-0001) and are left at their defaults here; a platform
-  /// channel joins them in afterwards. Conference links are extracted from
-  /// the description separately, without mutating it.
+  /// Conference links are extracted from the description separately,
+  /// without mutating it.
   Future<List<Commitment>> fetchCommitments({
     required DateTime start,
     required DateTime end,
@@ -46,11 +49,39 @@ class CalendarReader {
       end,
       calendarIds: visibleCalendars.map((calendar) => calendar.id).toList(),
     );
+    final rsvpByKey = await _fetchRsvpWithoutThrowing(start, end);
 
-    return events.map((event) => _toCommitment(event, calendarNames)).toList();
+    return events
+        .map((event) => _toCommitment(event, calendarNames, rsvpByKey))
+        .toList();
   }
 
-  Commitment _toCommitment(Event event, Map<String, String> calendarNames) {
+  /// A missing or unjoinable row -- including the channel failing outright,
+  /// e.g. on a platform that doesn't implement it -- degrades every
+  /// Commitment to [ResponseStatus.none] and `isOrganiser: false`. It never
+  /// fails the whole read.
+  Future<Map<String, CalendarRsvpEntry>> _fetchRsvpWithoutThrowing(
+    DateTime start,
+    DateTime end,
+  ) async {
+    try {
+      return await _rsvpChannel.fetch(start: start, end: end);
+    } on Exception {
+      return const {};
+    }
+  }
+
+  Commitment _toCommitment(
+    Event event,
+    Map<String, String> calendarNames,
+    Map<String, CalendarRsvpEntry> rsvpByKey,
+  ) {
+    final rsvp =
+        rsvpByKey[CalendarRsvpChannel.key(
+          event.eventId,
+          event.startDate.millisecondsSinceEpoch,
+        )];
+
     return Commitment(
       id: 'cal:${event.eventId}:${event.startDate.millisecondsSinceEpoch}',
       title: event.title,
@@ -60,8 +91,8 @@ class CalendarReader {
       location: event.location,
       description: event.description,
       attendeeCount: event.attendees?.length ?? 0,
-      isOrganiser: false,
-      myResponse: ResponseStatus.none,
+      isOrganiser: rsvp?.isOrganiser ?? false,
+      myResponse: rsvp?.myResponse ?? ResponseStatus.none,
       isRecurring: event.isRecurring,
       calendarName: calendarNames[event.calendarId] ?? event.calendarId,
     );
