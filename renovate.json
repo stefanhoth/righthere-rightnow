@@ -1,0 +1,56 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":semanticCommits", ":pinDigests"],
+  "timezone": "Europe/Berlin",
+  "labels": ["dependencies"],
+  "lockFileMaintenance": { "enabled": true, "automerge": true },
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true
+    },
+    { "matchUpdateTypes": ["major"], "automerge": false },
+    { "matchManagers": ["github-actions"], "groupName": "GitHub Actions" },
+    { "matchManagers": ["gradle", "gradle-wrapper"], "groupName": "Gradle" },
+    {
+      "description": "Calendar, alarm and notification packages carry the core behaviour and break subtly. Never automerge.",
+      "matchPackageNames": [
+        "device_calendar_plus",
+        "android_alarm_manager_plus",
+        "flutter_local_notifications",
+        "flutter_foreground_task"
+      ],
+      "automerge": false,
+      "labels": ["dependencies", "review-required"]
+    },
+    {
+      "description": "On-device inference engines are Beta upstream and change fast.",
+      "matchPackageNames": ["flutter_gemma", "flutter_gemma_builtin_ai", "flutter_gemma_litertlm"],
+      "automerge": false,
+      "labels": ["dependencies", "review-required"]
+    },
+    {
+      "description": "Drift and its generator must move together.",
+      "matchPackageNames": ["drift", "drift_dev", "drift_flutter", "sqlite3_flutter_libs"],
+      "groupName": "Drift"
+    },
+    {
+      "description": "Riverpod and its generator/lints must move together.",
+      "matchPackageNames": ["flutter_riverpod", "riverpod_annotation", "riverpod_generator", "riverpod_lint", "custom_lint"],
+      "groupName": "Riverpod"
+    }
+  ],
+  "customManagers": [
+    {
+      "description": "Keep the Flutter SDK pinned in .flutter-version visible to Renovate.",
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.flutter-version$/"],
+      "matchStrings": ["^(?<currentValue>\\d+\\.\\d+\\.\\d+)\\s*$"],
+      "depNameTemplate": "flutter/flutter",
+      "datasourceTemplate": "github-releases",
+      "versioningTemplate": "semver"
+    }
+  ]
+}
