@@ -2,6 +2,13 @@
 # Fast checks only. Full test suite runs on pre-push.
 set -e
 
+# Git sets these for the hook itself. In a worktree checkout they are
+# absolute paths pointing at *this* repo, which flutter/dart then inherit
+# when they shell out to git internally (e.g. to detect the Flutter SDK's
+# own version) -- hijacking that lookup and returning this repo's revision
+# instead. Unset before invoking any tool that runs its own git commands.
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX GIT_COMMON_DIR
+
 staged=$(git diff --cached --name-only --diff-filter=ACM | grep '\.dart$' || true)
 [ -z "$staged" ] && exit 0
 

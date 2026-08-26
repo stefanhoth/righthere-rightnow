@@ -1,5 +1,10 @@
 #!/bin/sh
 # The test suite is too slow for pre-commit; run it here instead.
 set -e
+
+# See .githooks/pre-commit for why: in a worktree checkout these confuse
+# flutter/dart's own internal git calls.
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX GIT_COMMON_DIR
+
 echo "pre-push: running tests"
 flutter test --test-randomize-ordering-seed random
