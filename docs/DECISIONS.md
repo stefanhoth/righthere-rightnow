@@ -3,6 +3,38 @@
 Smaller calls that shaped the repo but didn't warrant a full ADR. Newest
 first. Add an entry in the same PR that makes the decision.
 
+## 2026-08-26 — Documentation merges do not cut a release
+
+The Release workflow ignores pushes that touch only `**.md`, `docs/**`,
+`.githooks/**` and `LICENSE`. CI still runs on everything.
+
+This is a deliberate deviation from "every merge to main releases". That rule
+is right for a library, where the repo *is* the artifact. Here the artifact is
+the APK: a prose-only merge produced release `2026.08.26.2` with an APK
+byte-identical to `2026.08.26.1`, spending three minutes of CI to make the
+release list worse at answering "which build am I running?".
+
+## 2026-08-26 — Known intermittent: Release occasionally 403s
+
+Two of the first four release runs failed with
+`403 Resource not accessible by integration` on create-release, despite the
+job token demonstrably holding `Contents: write` (visible in the run's
+GITHUB_TOKEN Permissions group).
+
+Not diagnosed. The response header lists `contents=write,workflows=write` as
+an accepted combination, and two of the failures touched workflow files — but
+a third run also touched a workflow file and succeeded, so that explanation
+does not hold. The pattern that fits all four is timing: both failures were
+runs GitHub created 11 and 22 minutes behind their push, while prompt runs
+succeeded, suggesting a platform incident in that window.
+
+**Deliberately not "fixed".** Adding `workflows: write` speculatively would
+widen the token against least-privilege to chase a hypothesis its own
+counterexample undermines. The failure mode is benign: the next merge cuts a
+release, and `workflow_dispatch` re-cuts on demand.
+
+Revisit if it recurs on runs that were *not* delayed.
+
 ## 2026-08-26 — Fixed run time instead of reading the phone's wake alarm
 
 The Briefing Run fires at a configurable time, defaulting to 05:30, rather

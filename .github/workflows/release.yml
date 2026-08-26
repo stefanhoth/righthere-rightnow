@@ -3,6 +3,15 @@ name: Release
 on:
   push:
     branches: [main]
+    # The artifact of this repo is the APK. A merge that touches only prose
+    # would otherwise cut a release whose APK is byte-identical to the last
+    # one, making the release list useless for "which build am I running?".
+    # CI still runs on everything; only releasing is skipped.
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.githooks/**'
+      - 'LICENSE'
   workflow_dispatch:
 
 concurrency:
