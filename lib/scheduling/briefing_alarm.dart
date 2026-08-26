@@ -3,16 +3,14 @@ import 'dart:ui';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:righthere_rightnow/data/settings/run_time_storage.dart';
 import 'package:righthere_rightnow/scheduling/next_run_time.dart';
+import 'package:righthere_rightnow/scheduling/run_time.dart';
 
 /// `android_alarm_manager_plus` has no exact repeating alarm -- each run
 /// re-arms the next one, and this id is reused so a re-arm always replaces
 /// rather than duplicates the pending alarm.
 const briefingAlarmId = 0;
-
-/// Fixed until Task 2.2 adds a configurable setting.
-const defaultRunHour = 5;
-const defaultRunMinute = 30;
 
 const _rearmChannel = MethodChannel(
   'com.stefanhoth.righthere_rightnow/alarm_rearm',
@@ -40,11 +38,17 @@ Future<void> initializeBriefingAlarm() async {
   await scheduleNextBriefingAlarm();
 }
 
-Future<void> scheduleNextBriefingAlarm({DateTime? now}) async {
+/// Re-arms from the current setting -- pass [runTime] to skip the storage
+/// read when the caller just wrote a new one (e.g. from Settings).
+Future<void> scheduleNextBriefingAlarm({
+  DateTime? now,
+  RunTime? runTime,
+}) async {
+  final effectiveRunTime = runTime ?? await RunTimeStorage().read();
   final next = nextRunTime(
     now ?? DateTime.now(),
-    hour: defaultRunHour,
-    minute: defaultRunMinute,
+    hour: effectiveRunTime.hour,
+    minute: effectiveRunTime.minute,
   );
   await AndroidAlarmManager.oneShotAt(
     next,

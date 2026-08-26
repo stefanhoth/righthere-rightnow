@@ -1,5 +1,6 @@
 import 'package:righthere_rightnow/data/calendar/calendar_reader.dart';
 import 'package:righthere_rightnow/data/db/app_database.dart';
+import 'package:righthere_rightnow/data/settings/run_time_storage.dart';
 import 'package:righthere_rightnow/data/settings/todoist_token_storage.dart';
 import 'package:righthere_rightnow/data/todoist/todoist_client.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -17,6 +18,9 @@ TodoistClient todoistClient(Ref ref) => TodoistClient();
 
 @riverpod
 CalendarReader calendarReader(Ref ref) => CalendarReader();
+
+@riverpod
+RunTimeStorage runTimeStorage(Ref ref) => RunTimeStorage();
 
 @riverpod
 AppDatabase appDatabase(Ref ref) {
