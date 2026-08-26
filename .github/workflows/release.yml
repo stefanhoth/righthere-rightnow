@@ -89,14 +89,16 @@ jobs:
         uses: ./.github/actions/setup-flutter
       - run: make deps
 
-      # The APK is signed with debug keys. That is deliberate: this is a
-      # personal sideloaded app with no Play Store release, so there is no
-      # upload key to protect. Introducing a release keystore would mean a
-      # signing secret in CI for no benefit.
+      # A release build, but signed with debug keys -- the generated Gradle
+      # config already points the release buildType at signingConfigs.debug.
+      # That is deliberate: a personal sideloaded app has no Play upload key
+      # to protect, so a release keystore would mean a CI signing secret for
+      # no benefit. Using --release rather than --debug matters for size:
+      # the debug APK is ~150 MB, the release build a fraction of that.
       - name: Build APK
         env:
           APP_VERSION: ${{ needs.tag-release.outputs.calver_tag }}
-        run: flutter build apk --debug --build-name="$APP_VERSION"
+        run: flutter build apk --release --build-name="$APP_VERSION"
 
       - name: Attach APK to release
         env:
@@ -104,7 +106,7 @@ jobs:
           TAG: ${{ needs.tag-release.outputs.calver_tag }}
         run: |
           set -euo pipefail
-          apk="build/app/outputs/flutter-apk/app-debug.apk"
+          apk="build/app/outputs/flutter-apk/app-release.apk"
           test -f "$apk"
           cp "$apk" "righthere-rightnow-${TAG}.apk"
           gh release upload "$TAG" "righthere-rightnow-${TAG}.apk" --clobber
