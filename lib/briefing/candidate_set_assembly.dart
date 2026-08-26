@@ -1,4 +1,5 @@
 import 'package:righthere_rightnow/briefing/clock.dart';
+import 'package:righthere_rightnow/briefing/task_due_math.dart';
 import 'package:righthere_rightnow/domain/agenda_item.dart';
 import 'package:righthere_rightnow/domain/agenda_item_features.dart';
 import 'package:righthere_rightnow/domain/candidate_set.dart';
@@ -126,32 +127,11 @@ class CandidateSetAssembler {
         isRecurring: item.isRecurring,
         isFollowUpCandidate: false,
         priority: item.priority,
-        overdueDays: _overdueDays(item, now),
-        daysUntilDue: _daysUntilDue(item, now),
+        overdueDays: overdueDays(item.due, now),
+        daysUntilDue: daysUntilDue(item.due, now),
       ),
     };
   }
-
-  int? _overdueDays(Task task, DateTime now) {
-    final due = task.due;
-    if (due == null) {
-      return null;
-    }
-    final daysPastDue = _dateOnly(now).difference(_dateOnly(due.date)).inDays;
-    return daysPastDue > 0 ? daysPastDue : null;
-  }
-
-  int? _daysUntilDue(Task task, DateTime now) {
-    final due = task.due;
-    if (due == null) {
-      return null;
-    }
-    final daysPastDue = _dateOnly(now).difference(_dateOnly(due.date)).inDays;
-    return daysPastDue > 0 ? null : -daysPastDue;
-  }
-
-  DateTime _dateOnly(DateTime dateTime) =>
-      DateTime(dateTime.year, dateTime.month, dateTime.day);
 }
 
 extension _FirstOrNull<T> on Iterable<T> {
