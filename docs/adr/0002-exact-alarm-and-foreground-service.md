@@ -14,6 +14,14 @@ explicitly exempt from the Android 12+ foreground-service background-start
 restriction, so the alarm may start one, and a foreground service is not subject
 to Doze network suspension.
 
+The alarm fires at a **fixed, user-configurable time**. `getNextAlarmClock()`
+would be better — it reads whatever alarm the Clock app has set, needs no
+permission, and would keep the briefing aligned with travel and weekends — but
+it costs a platform channel, a manifest receiver for
+`ACTION_NEXT_ALARM_CLOCK_CHANGED`, and re-arm-on-change logic. A fixed time
+gets most of the value for a fraction of the work; see
+[DECISIONS.md](../DECISIONS.md).
+
 ## Consequences
 
 There is no exact repeating alarm API, so each run re-arms the next one, and

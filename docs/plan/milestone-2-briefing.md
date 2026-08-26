@@ -50,33 +50,36 @@ release":**
 
 ---
 
-## Task 2.2 — Schedule relative to the real wake alarm
+## Task 2.2 — Fixed, configurable run time
 
-Fixed 05:00 is a poor default. `AlarmManager.getNextAlarmClock()` returns the
-next alarm set by **any** app, including the Clock app — and needs **no
-permission**.
+A setting for the daily run time, defaulting to **05:30**. Changing it re-arms
+the alarm immediately.
 
-- Schedule the Briefing Run for **wake alarm minus 20 minutes**.
-- Fall back to **05:00** when `getNextAlarmClock()` returns null.
-- Register a manifest receiver for `ACTION_NEXT_ALARM_CLOCK_CHANGED` and re-arm
-  whenever the wake alarm changes.
-
-Expose this via the platform channel from Task 1.7 or a sibling channel.
+> **Deliberately simple.** `AlarmManager.getNextAlarmClock()` would read the
+> alarm your Clock app has set — no permission needed — and let the briefing
+> track travel and weekends automatically. It also needs a platform channel, a
+> manifest receiver for `ACTION_NEXT_ALARM_CLOCK_CHANGED`, and re-arm-on-change
+> logic. A fixed time gets most of the value for a fraction of the work.
+>
+> **Backlog, not discarded.** Revisit when the fixed time first annoys you —
+> an early flight or a lie-in is the likely trigger.
 
 **Acceptance criteria**
 
-- Changing the phone alarm re-arms the Briefing Run within seconds.
-- Removing all alarms falls back to 05:00.
-- The chosen next-run time is visible in Settings, so it can be verified without
-  waiting a day.
+- Changing the setting re-arms the alarm without an app restart.
+- The next scheduled run time is visible in Settings, so it can be verified
+  without waiting a day.
+- The time survives app restart and reboot.
 
 ---
 
 ## Task 2.3 — Foreground service for the run
 
 The alarm callback itself gets only a brief temporary power allowlist —
-seconds, undocumented — while a Briefing Run needs two network calls (and later,
-inference). Deep Doze suspends network outside that grant.
+seconds, undocumented — while a Briefing Run needs two network calls. Deep
+Doze suspends network outside that grant. (Inference is *not* part of this
+job — see [ADR-0006](../adr/0006-inference-runs-when-the-app-opens.md) — so
+the service exists purely to get network and enough runtime to fetch.)
 
 Exact alarms are explicitly exempt from the Android 12+ foreground-service
 background-start restriction, so the alarm receiver may start one.
@@ -125,9 +128,12 @@ onlyAlertOnce: true,
 `Importance.min` is **too** quiet — it is absent from the lock screen. Request
 `POST_NOTIFICATIONS` (Android 13+).
 
-**Content** (per the agreed Q14 answer): the **verbatim titles** of the top two
-Agenda Items. No generated text in this milestone. Facts are correct by
-construction — the lock screen is the worst place for a hallucination.
+**Content:** the **verbatim titles** of the top two Agenda Items, with their
+times. No generated text — not in this milestone and not in Milestone 3
+either, because inference does not run in the background at all. See
+[ADR-0006](../adr/0006-inference-runs-when-the-app-opens.md). Facts are
+correct by construction; the lock screen is the worst place for a
+hallucination.
 
 **Acceptance criteria**
 
