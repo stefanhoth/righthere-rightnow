@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "skills": {
+    "agentic-workflows": {
+      "source": "cli/cli",
+      "sourceType": "github",
+      "skillPath": ".github/skills/agentic-workflows/SKILL.md",
+      "computedHash": "97afaae756befc05d14da7b02a193582289c8534a15eb188b63b73fa199d2887"
+    },
+    "code-review": {
+      "source": "cli/cli",
+      "sourceType": "github",
+      "skillPath": ".github/skills/code-review/SKILL.md",
+      "computedHash": "5b9a038fa3b1ee28911357acfba20ec992a31bfbb6e862849a524ab96e061f05"
+    },
+    "dependabot-triager": {
+      "source": "cli/cli",
+      "sourceType": "github",
+      "skillPath": ".github/skills/dependabot-triager/SKILL.md",
+      "computedHash": "646281f53ce96b044a1f57cfecd84597136264640f1ed32e502eb88e732ae388"
+    },
+    "gh": {
+      "source": "cli/cli",
+      "sourceType": "github",
+      "skillPath": "skills/gh/SKILL.md",
+      "computedHash": "a25374297dab8b0412b9d3e3fb388c647104fa86f07a783855bd6fe55adbfdae"
+    },
+    "gh-skill": {
+      "source": "cli/cli",
+      "sourceType": "github",
+      "skillPath": "skills/gh-skill/SKILL.md",
+      "computedHash": "5b71623f49c33c842c1c81d9dc2818d72a1577647387e5b96f63868a23482555"
+    },
+    "tech-debt-burndown": {
+      "source": "cli/cli",
+      "sourceType": "github",
+      "skillPath": ".github/skills/tech-debt-burndown/SKILL.md",
+      "computedHash": "e27982a85e3c5bb1fd5442eb6fe1144366f5cbddaa8b5752754ceab34d0cd854"
+    }
+  }
+}
