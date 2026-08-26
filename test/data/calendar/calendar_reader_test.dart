@@ -25,6 +25,7 @@ Event _event({
   String? instanceId,
   String calendarId = 'work',
   String title = 'Untitled',
+  String? description,
   bool isAllDay = false,
   bool isRecurring = false,
   List<Attendee>? attendees,
@@ -34,6 +35,7 @@ Event _event({
     instanceId: instanceId ?? '$eventId@${start.millisecondsSinceEpoch}',
     calendarId: calendarId,
     title: title,
+    description: description,
     startDate: start,
     endDate: end,
     isAllDay: isAllDay,
@@ -210,6 +212,37 @@ void main() {
     expect(commitments.single.calendarName, 'Work');
     expect(commitments.single.attendeeCount, 2);
   });
+
+  test(
+    'extracts a conference link from the description without mutating it',
+    () async {
+      const description = 'Join: https://meet.google.com/abc-defg-hij';
+      when(
+        () => deviceCalendar.listEvents(
+          any(),
+          any(),
+          calendarIds: any(named: 'calendarIds'),
+        ),
+      ).thenAnswer(
+        (_) async => [
+          _event(
+            eventId: 'standup',
+            start: DateTime.utc(2026, 8, 26, 9),
+            end: DateTime.utc(2026, 8, 26, 9, 15),
+            description: description,
+          ),
+        ],
+      );
+
+      final commitments = await reader.fetchCommitments(start: start, end: end);
+
+      expect(
+        commitments.single.conferenceUrl,
+        'https://meet.google.com/abc-defg-hij',
+      );
+      expect(commitments.single.description, description);
+    },
+  );
 
   group('RSVP and organiser join', () {
     void stubEvent(String eventId, DateTime eventStart, DateTime eventEnd) {

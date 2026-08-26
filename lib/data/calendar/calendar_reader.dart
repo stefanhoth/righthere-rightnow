@@ -1,6 +1,7 @@
 import 'package:device_calendar_plus/device_calendar_plus.dart';
 import 'package:righthere_rightnow/data/calendar/calendar_exception.dart';
 import 'package:righthere_rightnow/data/calendar/calendar_rsvp_channel.dart';
+import 'package:righthere_rightnow/data/calendar/conference_link_extractor.dart';
 import 'package:righthere_rightnow/domain/agenda_item.dart';
 import 'package:righthere_rightnow/domain/response_status.dart';
 
@@ -94,6 +95,7 @@ class CalendarReader {
       isOrganiser: rsvp?.isOrganiser ?? false,
       myResponse: rsvp?.myResponse ?? ResponseStatus.none,
       isRecurring: event.isRecurring,
+      conferenceUrl: extractConferenceUrl(event.description),
       calendarName: calendarNames[event.calendarId] ?? event.calendarId,
     );
   }
