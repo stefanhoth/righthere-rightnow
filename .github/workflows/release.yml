@@ -1,0 +1,109 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false # never kill a half-finished release
+
+permissions:
+  contents: read
+
+jobs:
+  tag-release:
+    name: Tag release (CalVer)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      calver_tag: ${{ steps.release.outputs.calver_tag }}
+    steps:
+      - name: Compute tag, gather notes, and create GitHub release
+        id: release
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const base = new Date().toISOString().slice(0, 10).replaceAll("-", ".");
+
+            async function tagExists(tag) {
+              try {
+                await github.rest.git.getRef({ owner, repo, ref: `tags/${tag}` });
+                return true;
+              } catch (e) {
+                if (e.status === 404) return false;
+                throw e;
+              }
+            }
+
+            let version = base;
+            let counter = 0;
+            while (await tagExists(version)) {
+              counter += 1;
+              version = `${base}.${counter}`;
+            }
+
+            let notes = "- Maintenance / dependency updates";
+            try {
+              const { data: latest } = await github.rest.repos.getLatestRelease({ owner, repo });
+              const { data: cmp } = await github.rest.repos.compareCommitsWithBasehead({
+                owner, repo, basehead: `${latest.tag_name}...${context.sha}`,
+              });
+              const lines = cmp.commits
+                .filter((c) => c.parents.length <= 1)
+                .map((c) => `- ${c.commit.message.split("\n")[0]}`);
+              if (lines.length) notes = lines.join("\n");
+            } catch (e) {
+              if (e.status !== 404) throw e;
+            }
+
+            await github.rest.repos.createRelease({
+              owner, repo,
+              tag_name: version,
+              target_commitish: context.sha,
+              name: version,
+              body: notes,
+              make_latest: "true",
+            });
+
+            core.setOutput("calver_tag", version);
+
+  apk:
+    name: Attach APK
+    needs: tag-release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Flutter
+        uses: ./.github/actions/setup-flutter
+      - run: make deps
+
+      # The APK is signed with debug keys. That is deliberate: this is a
+      # personal sideloaded app with no Play Store release, so there is no
+      # upload key to protect. Introducing a release keystore would mean a
+      # signing secret in CI for no benefit.
+      - name: Build APK
+        env:
+          APP_VERSION: ${{ needs.tag-release.outputs.calver_tag }}
+        run: flutter build apk --debug --build-name="$APP_VERSION"
+
+      - name: Attach APK to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.tag-release.outputs.calver_tag }}
+        run: |
+          set -euo pipefail
+          apk="build/app/outputs/flutter-apk/app-debug.apk"
+          test -f "$apk"
+          cp "$apk" "righthere-rightnow-${TAG}.apk"
+          gh release upload "$TAG" "righthere-rightnow-${TAG}.apk" --clobber
