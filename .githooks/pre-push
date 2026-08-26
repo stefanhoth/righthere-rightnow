@@ -1,0 +1,5 @@
+#!/bin/sh
+# The test suite is too slow for pre-commit; run it here instead.
+set -e
+echo "pre-push: running tests"
+flutter test --test-randomize-ordering-seed random

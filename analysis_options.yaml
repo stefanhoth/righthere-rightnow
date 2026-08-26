@@ -1,38 +1,52 @@
-# This file configures the analyzer, which statically analyzes Dart code to
-# check for errors, warnings, and lints.
-#
-# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
-# IDEs (https://dart.dev/tools#ides-and-editors). The analyzer can also be
-# invoked from the command line by running `flutter analyze`.
-
-# The following line activates a set of recommended lints for Flutter apps,
-# packages, and plugins designed to encourage good coding practices.
-include: package:flutter_lints/flutter.yaml
+include: package:very_good_analysis/analysis_options.10.3.0.yaml
 
 analyzer:
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+
+  errors:
+    # Promote correctness diagnostics to build-breaking.
+    invalid_annotation_target: error
+    missing_required_param: error
+    unrelated_type_equality_checks: error
+    collection_methods_unrelated_type: error
+    body_might_complete_normally_nullable: error
+
+    # Deprecations stay visible but must not redline main on an SDK bump.
+    # The SDK is pinned in .flutter-version, so these appear only when we
+    # deliberately upgrade — at which point `make fix` usually clears them.
+    deprecated_member_use: warning
+    deprecated_member_use_from_same_package: warning
+
+    # `todo` is an info-level diagnostic, so --fatal-infos would fail the
+    # build on every `// TODO`. Ignore the diagnostic, not the practice.
+    todo: ignore
+
   exclude:
-    - build/**
-    - android/**
-    - ios/**
-    - web/**
-    - windows/**
-    - macos/**
-    - linux/**
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "**/*.drift.dart"
+    - "**/*.gen.dart"
+    - "**/*.mocks.dart"
+    - "**/generated_plugin_registrant.dart"
+    - "build/**"
+    # Platform directories are not Dart; `flutter analyze` appends these
+    # itself if they are missing.
+    - "android/**"
+    - "ios/**"
+    - "web/**"
+    - "windows/**"
+    - "macos/**"
+    - "linux/**"
+
+formatter:
+  trailing_commas: automate
 
 linter:
-  # The lint rules applied to this project can be customized in the
-  # section below to disable rules from the `package:flutter_lints/flutter.yaml`
-  # included above or to enable additional rules. A list of all available lints
-  # and their documentation is published at https://dart.dev/lints.
-  #
-  # Instead of disabling a lint rule for the entire project in the
-  # section below, it can also be suppressed for a single line of code
-  # or a specific dart file by using the `// ignore: name_of_lint` and
-  # `// ignore_for_file: name_of_lint` syntax on the line or in the file
-  # producing the lint.
   rules:
-    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
-    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
-
-# Additional information about this file can be found at
-# https://dart.dev/guides/language/analysis-options
+    # Calibrated for publishable packages; noise in an application.
+    public_member_api_docs: false
+    # The formatter owns line length; having both complain contradicts.
+    lines_longer_than_80_chars: false
