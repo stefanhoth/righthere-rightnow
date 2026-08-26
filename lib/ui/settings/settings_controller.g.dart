@@ -9,95 +9,6 @@ part of 'settings_controller.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 
-@ProviderFor(todoistTokenStorage)
-final todoistTokenStorageProvider = TodoistTokenStorageProvider._();
-
-final class TodoistTokenStorageProvider
-    extends
-        $FunctionalProvider<
-          TodoistTokenStorage,
-          TodoistTokenStorage,
-          TodoistTokenStorage
-        >
-    with $Provider<TodoistTokenStorage> {
-  TodoistTokenStorageProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'todoistTokenStorageProvider',
-        isAutoDispose: true,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
-
-  @override
-  String debugGetCreateSourceHash() => _$todoistTokenStorageHash();
-
-  @$internal
-  @override
-  $ProviderElement<TodoistTokenStorage> $createElement(
-    $ProviderPointer pointer,
-  ) => $ProviderElement(pointer);
-
-  @override
-  TodoistTokenStorage create(Ref ref) {
-    return todoistTokenStorage(ref);
-  }
-
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(TodoistTokenStorage value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<TodoistTokenStorage>(value),
-    );
-  }
-}
-
-String _$todoistTokenStorageHash() =>
-    r'17ea5fbfb37688ccefe3a363da62197e805cef4f';
-
-@ProviderFor(todoistClient)
-final todoistClientProvider = TodoistClientProvider._();
-
-final class TodoistClientProvider
-    extends $FunctionalProvider<TodoistClient, TodoistClient, TodoistClient>
-    with $Provider<TodoistClient> {
-  TodoistClientProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'todoistClientProvider',
-        isAutoDispose: true,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
-
-  @override
-  String debugGetCreateSourceHash() => _$todoistClientHash();
-
-  @$internal
-  @override
-  $ProviderElement<TodoistClient> $createElement($ProviderPointer pointer) =>
-      $ProviderElement(pointer);
-
-  @override
-  TodoistClient create(Ref ref) {
-    return todoistClient(ref);
-  }
-
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(TodoistClient value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<TodoistClient>(value),
-    );
-  }
-}
-
-String _$todoistClientHash() => r'0b7cd236f2dcf48dfdccfedcd273aa77cbceb79e';
-
 @ProviderFor(storedTodoistToken)
 final storedTodoistTokenProvider = StoredTodoistTokenProvider._();
 
@@ -207,7 +118,7 @@ final class TokenEntryControllerProvider
 }
 
 String _$tokenEntryControllerHash() =>
-    r'8a96421915ebc8bfaa005e9fceba568e16ca30a4';
+    r'be33434617e66aff2d843f63a3b64f308f36ef53';
 
 abstract class _$TokenEntryController extends $Notifier<TokenEntryStatus> {
   TokenEntryStatus build();
