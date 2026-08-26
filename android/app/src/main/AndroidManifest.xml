@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Read-only agenda: no WRITE_CALENDAR, this app never creates or edits
+         events. -->
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
     <application
         android:label="righthere_rightnow"
         android:name="${applicationName}"
