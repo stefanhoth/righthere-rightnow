@@ -26,6 +26,21 @@ class MainActivity : FlutterActivity() {
                 }
                 handleQueryRsvpAndOrganiser(call, result)
             }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, ALARM_REARM_CHANNEL_NAME)
+            .setMethodCallHandler { call, result ->
+                if (call.method != "storeRearmCallbackHandle") {
+                    result.notImplemented()
+                    return@setMethodCallHandler
+                }
+                val handle = (call.arguments as? Number)?.toLong()
+                if (handle == null) {
+                    result.error("invalid_arguments", "a callback handle is required", null)
+                    return@setMethodCallHandler
+                }
+                AlarmRearmPrefs.storeCallbackHandle(applicationContext, handle)
+                result.success(null)
+            }
     }
 
     private fun handleQueryRsvpAndOrganiser(
@@ -80,5 +95,7 @@ class MainActivity : FlutterActivity() {
     companion object {
         private const val CHANNEL_NAME = "com.stefanhoth.righthere_rightnow/calendar_rsvp"
         private const val METHOD_QUERY_RSVP_AND_ORGANISER = "queryRsvpAndOrganiser"
+        private const val ALARM_REARM_CHANNEL_NAME =
+            "com.stefanhoth.righthere_rightnow/alarm_rearm"
     }
 }

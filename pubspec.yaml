@@ -8,6 +8,7 @@ environment:
   sdk: ^3.13.1
 
 dependencies:
+  android_alarm_manager_plus: ^5.1.1
   device_calendar_plus: ^0.8.0
   drift: ^2.34.3
   drift_flutter: ^0.3.1
