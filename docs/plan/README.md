@@ -20,9 +20,14 @@ dependency — do them top to bottom.
 
 ## Definition of done for every task
 
-- `flutter analyze` reports no issues.
-- New logic has unit tests; `flutter test` passes.
+- `make ci` passes — dependencies, format check, strict lint, tests.
+- New logic has unit tests.
 - The app still builds: `flutter build apk --debug`.
+
+Lint runs with `--fatal-infos --fatal-warnings`; see
+[ADR-0005](../adr/0005-zero-warning-quality-baseline.md) for why the flag
+matters. Warnings are fixed in the change that introduces them, or suppressed
+at the site with a justification — never globally silenced.
 
 ## Non-negotiables
 
