@@ -1,15 +1,8 @@
 import 'package:device_calendar_plus/device_calendar_plus.dart';
-import 'package:righthere_rightnow/data/settings/todoist_token_storage.dart';
-import 'package:righthere_rightnow/data/todoist/todoist_client.dart';
+import 'package:righthere_rightnow/data/providers.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'settings_controller.g.dart';
-
-@riverpod
-TodoistTokenStorage todoistTokenStorage(Ref ref) => TodoistTokenStorage();
-
-@riverpod
-TodoistClient todoistClient(Ref ref) => TodoistClient();
 
 @riverpod
 Future<String?> storedTodoistToken(Ref ref) {

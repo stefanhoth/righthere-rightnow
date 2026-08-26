@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage_platform_interface/flutter_secure_storage_platform_interface.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:righthere_rightnow/data/providers.dart';
 import 'package:righthere_rightnow/data/todoist/todoist_client.dart';
 import 'package:righthere_rightnow/ui/settings/settings_controller.dart';
 import 'package:righthere_rightnow/ui/settings/settings_screen.dart';
