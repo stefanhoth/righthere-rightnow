@@ -1,0 +1,64 @@
+name: Set up Flutter
+description: >-
+  Install the Flutter SDK version pinned in .flutter-version, with caching.
+  Written inline rather than using a third-party setup action, so the trusted
+  surface stays limited to GitHub-owned actions and code in this repository.
+
+runs:
+  using: composite
+  steps:
+    - name: Read pinned SDK version
+      id: version
+      shell: bash
+      run: |
+        set -euo pipefail
+        version="$(tr -d '[:space:]' < .flutter-version)"
+        case "$version" in
+          [0-9]*.[0-9]*.[0-9]*) ;;
+          *) echo "::error::.flutter-version must be X.Y.Z, got '$version'"; exit 1 ;;
+        esac
+        echo "version=$version" >> "$GITHUB_OUTPUT"
+
+    - name: Restore cache
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: |
+          ${{ runner.tool_cache }}/flutter
+          ~/.pub-cache
+        key: flutter-${{ runner.os }}-${{ steps.version.outputs.version }}-${{ hashFiles('**/pubspec.lock') }}
+        restore-keys: |
+          flutter-${{ runner.os }}-${{ steps.version.outputs.version }}-
+
+    - name: Install SDK
+      shell: bash
+      env:
+        FLUTTER_VERSION: ${{ steps.version.outputs.version }}
+        SDK_DIR: ${{ runner.tool_cache }}/flutter
+      run: |
+        set -euo pipefail
+        if [ ! -x "$SDK_DIR/bin/flutter" ]; then
+          url="https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_${FLUTTER_VERSION}-stable.tar.xz"
+          echo "Downloading $url"
+          mkdir -p "$(dirname "$SDK_DIR")"
+          curl -sSfL -o /tmp/flutter.tar.xz "$url"
+          tar -xJf /tmp/flutter.tar.xz -C "$(dirname "$SDK_DIR")"
+          rm -f /tmp/flutter.tar.xz
+        else
+          echo "Using cached SDK at $SDK_DIR"
+        fi
+        git config --global --add safe.directory "$SDK_DIR"
+        echo "$SDK_DIR/bin" >> "$GITHUB_PATH"
+        echo "$SDK_DIR/bin/cache/dart-sdk/bin" >> "$GITHUB_PATH"
+
+    - name: Verify
+      shell: bash
+      env:
+        FLUTTER_VERSION: ${{ steps.version.outputs.version }}
+      run: |
+        set -euo pipefail
+        flutter --version
+        actual="$(flutter --version | head -1 | awk '{print $2}')"
+        if [ "$actual" != "$FLUTTER_VERSION" ]; then
+          echo "::error::Expected Flutter $FLUTTER_VERSION but got $actual"
+          exit 1
+        fi
