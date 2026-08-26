@@ -19,7 +19,8 @@ android {
         applicationId = "com.stefanhoth.righthere_rightnow"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        // Single sideloaded device (Pixel 9); no Play Store minimum to satisfy.
+        minSdk = 30
         targetSdk = flutter.targetSdkVersion
         // Uses the version code from pubspec.yaml. When using split APKs, 1000 * ABI_VERSION
         // is added automatically by Flutter. (https://developer.android.com/studio/build/configure-apk-splits#configure-APK-versions)
@@ -27,6 +28,11 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        ndk {
+            // Single physical target device; skip building/shipping other ABIs.
+            abiFilters += listOf("arm64-v8a")
+        }
     }
 
     buildTypes {
