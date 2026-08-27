@@ -21,6 +21,7 @@ class BriefingRunResult {
   const BriefingRunResult({
     required this.runId,
     required this.agenda,
+    required this.candidateItems,
     required this.allDayCommitments,
     required this.startedAt,
     required this.completedAt,
@@ -30,6 +31,12 @@ class BriefingRunResult {
 
   final int runId;
   final RankedAgenda agenda;
+
+  /// The full Candidate Set, features included -- what an Inference Engine
+  /// re-ranking this run needs to reason over (ADR-0003). Always in
+  /// fallback-rank order, independent of [agenda]'s current order.
+  final List<CandidateItem> candidateItems;
+
   final List<Commitment> allDayCommitments;
   final DateTime startedAt;
   final DateTime completedAt;
@@ -104,6 +111,7 @@ class BriefingRunOrchestrator {
     return BriefingRunResult(
       runId: runId,
       agenda: RankedAgenda(items: rankedItems, rankedBy: RankedBy.fallback),
+      candidateItems: candidateSet.items,
       allDayCommitments: candidateSet.allDayCommitments,
       startedAt: startedAt,
       completedAt: completedAt,

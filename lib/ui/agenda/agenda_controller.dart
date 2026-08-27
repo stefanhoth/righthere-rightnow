@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:righthere_rightnow/briefing/briefing_run_orchestrator.dart';
 import 'package:righthere_rightnow/briefing/providers.dart';
 import 'package:righthere_rightnow/data/providers.dart';
@@ -13,6 +15,7 @@ class DailyAgendaController extends _$DailyAgendaController {
   Future<BriefingRunResult> build() async {
     final result = await ref.read(briefingRunOrchestratorProvider).run();
     ref.invalidate(lastBriefingRunCompletedAtProvider);
+    _rerankWithModel(result);
     return result;
   }
 
@@ -22,6 +25,23 @@ class DailyAgendaController extends _$DailyAgendaController {
       () => ref.read(briefingRunOrchestratorProvider).run(),
     );
     ref.invalidate(lastBriefingRunCompletedAtProvider);
+    final result = state.value;
+    if (result != null) {
+      _rerankWithModel(result);
+    }
+  }
+
+  /// The deterministic agenda is already on screen by the time this is
+  /// called (ADR-0006) -- this only ever reorders it in place once the
+  /// model responds, and never blocks or replaces the initial render.
+  void _rerankWithModel(BriefingRunResult fallbackResult) {
+    unawaited(
+      ref.read(modelRerankerProvider).rerank(fallbackResult).then((reranked) {
+        if (reranked != null && ref.mounted) {
+          state = AsyncData(reranked);
+        }
+      }),
+    );
   }
 }
 
