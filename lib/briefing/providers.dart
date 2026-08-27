@@ -1,4 +1,5 @@
 import 'package:righthere_rightnow/briefing/briefing_run_orchestrator.dart';
+import 'package:righthere_rightnow/briefing/framing_line_generator.dart';
 import 'package:righthere_rightnow/briefing/model_reranker.dart';
 import 'package:righthere_rightnow/data/providers.dart';
 import 'package:righthere_rightnow/inference/built_in_ai_engine.dart';
@@ -27,6 +28,14 @@ InferenceEngine inferenceEngine(Ref ref) => BuiltInAiEngine();
 @riverpod
 ModelReranker modelReranker(Ref ref) {
   return ModelReranker(
+    engine: ref.watch(inferenceEngineProvider),
+    database: ref.watch(appDatabaseProvider),
+  );
+}
+
+@riverpod
+FramingLineGenerator framingLineGenerator(Ref ref) {
+  return FramingLineGenerator(
     engine: ref.watch(inferenceEngineProvider),
     database: ref.watch(appDatabaseProvider),
   );

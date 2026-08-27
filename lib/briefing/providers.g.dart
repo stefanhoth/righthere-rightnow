@@ -150,3 +150,51 @@ final class ModelRerankerProvider
 }
 
 String _$modelRerankerHash() => r'1e3760ba4aab3b1790a7e8a03ba66878e4e311dc';
+
+@ProviderFor(framingLineGenerator)
+final framingLineGeneratorProvider = FramingLineGeneratorProvider._();
+
+final class FramingLineGeneratorProvider
+    extends
+        $FunctionalProvider<
+          FramingLineGenerator,
+          FramingLineGenerator,
+          FramingLineGenerator
+        >
+    with $Provider<FramingLineGenerator> {
+  FramingLineGeneratorProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'framingLineGeneratorProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$framingLineGeneratorHash();
+
+  @$internal
+  @override
+  $ProviderElement<FramingLineGenerator> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  FramingLineGenerator create(Ref ref) {
+    return framingLineGenerator(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(FramingLineGenerator value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<FramingLineGenerator>(value),
+    );
+  }
+}
+
+String _$framingLineGeneratorHash() =>
+    r'60acabccd700ec2b3e26b19edcfe215ddc5d5f11';

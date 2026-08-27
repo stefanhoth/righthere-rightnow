@@ -248,6 +248,41 @@ void main() {
     expect(find.byKey(const Key('openedFromNotificationBanner')), findsNothing);
   });
 
+  testWidgets('shows the framing line when the run has one', (tester) async {
+    final result = BriefingRunResult(
+      runId: 1,
+      candidateItems: const [],
+      agenda: const RankedAgenda(items: [], rankedBy: RankedBy.fallback),
+      allDayCommitments: const [],
+      startedAt: DateTime(2026, 8, 26, 9),
+      completedAt: DateTime(2026, 8, 26, 9, 0, 5),
+      framingLine: 'Heavy meeting day -- protect the morning.',
+    );
+
+    await _pumpAgenda(tester, result);
+
+    expect(find.byKey(const Key('framingLine')), findsOneWidget);
+    expect(
+      find.text('Heavy meeting day -- protect the morning.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('shows no framing line when the run has none', (tester) async {
+    final result = BriefingRunResult(
+      runId: 1,
+      candidateItems: const [],
+      agenda: const RankedAgenda(items: [], rankedBy: RankedBy.fallback),
+      allDayCommitments: const [],
+      startedAt: DateTime(2026, 8, 26, 9),
+      completedAt: DateTime(2026, 8, 26, 9, 0, 5),
+    );
+
+    await _pumpAgenda(tester, result);
+
+    expect(find.byKey(const Key('framingLine')), findsNothing);
+  });
+
   testWidgets('shows a stale banner when the last run is over a day old', (
     tester,
   ) async {

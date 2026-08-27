@@ -199,4 +199,26 @@ void main() {
       'v3 text',
     ]);
   });
+
+  test('saveFramingLine records the line on its run', () async {
+    final runId = await db
+        .into(db.briefingRuns)
+        .insert(
+          BriefingRunsCompanion.insert(
+            startedAt: DateTime.utc(2026, 8, 26),
+            completedAt: DateTime.utc(2026, 8, 26, 0, 0, 5),
+            rankedBy: RankedBy.fallback,
+          ),
+        );
+
+    await db.saveFramingLine(
+      runId: runId,
+      framingLine: 'Heavy meeting day -- protect the morning.',
+    );
+
+    final storedRun = await (db.select(
+      db.briefingRuns,
+    )..where((r) => r.id.equals(runId))).getSingle();
+    expect(storedRun.framingLine, 'Heavy meeting day -- protect the morning.');
+  });
 }

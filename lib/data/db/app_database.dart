@@ -14,6 +14,12 @@ class BriefingRuns extends Table {
   TextColumn get rankedBy => textEnum<RankedBy>()();
   TextColumn get promptVersion => text().nullable()();
   TextColumn get error => text().nullable()();
+
+  /// The one generated sentence shown at the top of the Daily Agenda
+  /// screen. Set only once, at app-open, alongside the model's re-ranking
+  /// attempt -- null until then, and forever if inference never succeeds
+  /// for this run.
+  TextColumn get framingLine => text().nullable()();
 }
 
 /// One Agenda Item as a Briefing Run saw it: the replay input for later
@@ -67,7 +73,7 @@ class AppDatabase extends _$AppDatabase {
       const DriftDatabaseOptions(storeDateTimeAsText: true);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -75,6 +81,9 @@ class AppDatabase extends _$AppDatabase {
     onUpgrade: (m, from, to) async {
       if (from < 2) {
         await m.createTable(prompts);
+      }
+      if (from < 3) {
+        await m.addColumn(briefingRuns, briefingRuns.framingLine);
       }
     },
   );
@@ -154,6 +163,17 @@ class AppDatabase extends _$AppDatabase {
             .write(SnapshotItemsCompanion(producedRank: Value(rank)));
       }
     });
+  }
+
+  /// Records the generated framing line for [runId], once inference
+  /// produces one -- see Task 3.4.
+  Future<void> saveFramingLine({
+    required int runId,
+    required String framingLine,
+  }) {
+    return (update(briefingRuns)..where((r) => r.id.equals(runId))).write(
+      BriefingRunsCompanion(framingLine: Value(framingLine)),
+    );
   }
 }
 

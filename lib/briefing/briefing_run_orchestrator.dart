@@ -27,6 +27,7 @@ class BriefingRunResult {
     required this.completedAt,
     this.calendarPermissionDenied = false,
     this.error,
+    this.framingLine,
   });
 
   final int runId;
@@ -50,7 +51,31 @@ class BriefingRunResult {
   /// from whatever succeeded.
   final String? error;
 
+  /// One generated sentence framing the day, or null if inference hasn't
+  /// produced one yet -- or never will for this run. Never shown on the
+  /// lock screen (ADR-0006): the Focus Pull posts before any model runs.
+  final String? framingLine;
+
   bool get isPartial => error != null;
+
+  /// A copy with [agenda] and/or [framingLine] replaced -- the two things
+  /// that change after the initial, fallback-ranked result: a successful
+  /// model re-rank, and a successful framing-line generation. Each can
+  /// complete independently and later than the other, so applying one must
+  /// never lose whichever the other already applied.
+  BriefingRunResult copyWith({RankedAgenda? agenda, String? framingLine}) {
+    return BriefingRunResult(
+      runId: runId,
+      agenda: agenda ?? this.agenda,
+      candidateItems: candidateItems,
+      allDayCommitments: allDayCommitments,
+      startedAt: startedAt,
+      completedAt: completedAt,
+      calendarPermissionDenied: calendarPermissionDenied,
+      error: error,
+      framingLine: framingLine ?? this.framingLine,
+    );
+  }
 }
 
 /// Wires a Briefing Run together: fetch Commitments and Tasks in parallel,
