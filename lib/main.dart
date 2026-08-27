@@ -3,12 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:righthere_rightnow/scheduling/briefing_alarm.dart';
 import 'package:righthere_rightnow/scheduling/briefing_foreground_service.dart';
 import 'package:righthere_rightnow/scheduling/focus_pull_notification.dart';
+import 'package:righthere_rightnow/scheduling/notification_navigation.dart';
 import 'package:righthere_rightnow/ui/agenda/daily_agenda_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   initializeBriefingService();
-  await initializeFocusPullNotifications();
+  await initializeFocusPullNotifications(
+    onDidReceiveNotificationResponse: onNotificationTap,
+  );
   await requestFocusPullNotificationPermission();
   await initializeBriefingAlarm();
   runApp(const ProviderScope(child: RightHereRightNowApp()));
@@ -21,6 +24,7 @@ class RightHereRightNowApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Right Here, Right Now',
+      navigatorKey: navigatorKey,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),

@@ -105,11 +105,13 @@ class _AgendaBody extends ConsumerWidget {
 
     final rankedItems = result.agenda.items;
     final isEmpty = rankedItems.isEmpty && result.allDayCommitments.isEmpty;
+    final launchRunId = ref.watch(notificationLaunchRunIdProvider).value;
 
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       children: [
         _LastRunBanner(result: result),
+        if (launchRunId != null) const _OpenedFromNotificationBanner(),
         if (result.isPartial) _PartialDataBanner(message: result.error!),
         if (result.allDayCommitments.isNotEmpty)
           _AllDayHeader(commitments: result.allDayCommitments),
@@ -138,6 +140,22 @@ class _LastRunBanner extends StatelessWidget {
       child: Text(
         'Last updated ${DateFormat.jm().format(result.completedAt)}',
         key: const Key('lastRunTime'),
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
+    );
+  }
+}
+
+class _OpenedFromNotificationBanner extends StatelessWidget {
+  const _OpenedFromNotificationBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      key: const Key('openedFromNotificationBanner'),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+      child: Text(
+        'Opened from your Focus Pull notification.',
         style: Theme.of(context).textTheme.bodySmall,
       ),
     );
