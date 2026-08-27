@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
+import 'package:righthere_rightnow/briefing/prompt.dart';
 import 'package:righthere_rightnow/domain/ranked_agenda.dart';
 
 part 'app_database.g.dart';
@@ -40,7 +41,17 @@ class RunRatings extends Table {
   DateTimeColumn get notedAt => dateTime()();
 }
 
-@DriftDatabase(tables: [BriefingRuns, SnapshotItems, RunRatings])
+/// One version of the ranking prompt -- see ADR-0003. The active prompt is
+/// the row with the highest [version]; editing or resetting never overwrites
+/// a row, it inserts a new one, so every version a Briefing Run could have
+/// used stays queryable for replay.
+class Prompts extends Table {
+  IntColumn get version => integer().autoIncrement()();
+  TextColumn get body => text()();
+  DateTimeColumn get updatedAt => dateTime()();
+}
+
+@DriftDatabase(tables: [BriefingRuns, SnapshotItems, RunRatings, Prompts])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
@@ -56,11 +67,17 @@ class AppDatabase extends _$AppDatabase {
       const DriftDatabaseOptions(storeDateTimeAsText: true);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
-  MigrationStrategy get migration =>
-      MigrationStrategy(onCreate: (m) => m.createAll());
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (m) => m.createAll(),
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.createTable(prompts);
+      }
+    },
+  );
 
   /// When the most recent Briefing Run finished, or null if none ever has.
   /// Used to tell a silent alarm from a healthy one that just hasn't fired
@@ -71,6 +88,46 @@ class AppDatabase extends _$AppDatabase {
       ..limit(1);
     final row = await query.getSingleOrNull();
     return row?.completedAt;
+  }
+
+  /// The active prompt: the highest [Prompts.version] row, or
+  /// [defaultPromptText] seeded as version 1 if the app has never stored
+  /// one. A single query (and, at most, a single seed) for both the text
+  /// and its version, so callers reading both never see them disagree.
+  Future<ActivePrompt> activePrompt() async {
+    final row = await _activePromptRow();
+    if (row != null) {
+      return ActivePrompt(text: row.body, version: row.version);
+    }
+    await _writePrompt(defaultPromptText);
+    final seeded = (await _activePromptRow())!;
+    return ActivePrompt(text: seeded.body, version: seeded.version);
+  }
+
+  /// The text of the active prompt (see [activePrompt]).
+  Future<String> activePromptText() async => (await activePrompt()).text;
+
+  /// The version number of the active prompt (see [activePrompt]).
+  Future<int> activePromptVersion() async => (await activePrompt()).version;
+
+  /// Inserts [text] as a new, higher-versioned active prompt.
+  Future<void> updatePrompt(String text) => _writePrompt(text);
+
+  /// Inserts [defaultPromptText] as a new, higher-versioned active prompt --
+  /// a reset is a normal edit, not a deletion, so prior versions stay
+  /// queryable for replay.
+  Future<void> resetPromptToDefault() => _writePrompt(defaultPromptText);
+
+  Future<Prompt?> _activePromptRow() {
+    final query = select(prompts)
+      ..orderBy([(t) => OrderingTerm.desc(t.version)])
+      ..limit(1);
+    return query.getSingleOrNull();
+  }
+
+  Future<int> _writePrompt(String text) {
+    return into(prompts)
+        .insert(PromptsCompanion.insert(body: text, updatedAt: DateTime.now()));
   }
 }
 

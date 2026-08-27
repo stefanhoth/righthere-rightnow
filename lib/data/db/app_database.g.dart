@@ -1195,12 +1195,265 @@ class RunRatingsCompanion extends UpdateCompanion<RunRating> {
   }
 }
 
+class $PromptsTable extends Prompts with TableInfo<$PromptsTable, Prompt> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PromptsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _versionMeta = const VerificationMeta(
+    'version',
+  );
+  @override
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+    'version',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _bodyMeta = const VerificationMeta('body');
+  @override
+  late final GeneratedColumn<String> body = GeneratedColumn<String>(
+    'body',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [version, body, updatedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'prompts';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Prompt> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('version')) {
+      context.handle(
+        _versionMeta,
+        version.isAcceptableOrUnknown(data['version']!, _versionMeta),
+      );
+    }
+    if (data.containsKey('body')) {
+      context.handle(
+        _bodyMeta,
+        body.isAcceptableOrUnknown(data['body']!, _bodyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_bodyMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {version};
+  @override
+  Prompt map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Prompt(
+      version: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}version'],
+      )!,
+      body: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}body'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $PromptsTable createAlias(String alias) {
+    return $PromptsTable(attachedDatabase, alias);
+  }
+}
+
+class Prompt extends DataClass implements Insertable<Prompt> {
+  final int version;
+  final String body;
+  final DateTime updatedAt;
+  const Prompt({
+    required this.version,
+    required this.body,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['version'] = Variable<int>(version);
+    map['body'] = Variable<String>(body);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  PromptsCompanion toCompanion(bool nullToAbsent) {
+    return PromptsCompanion(
+      version: Value(version),
+      body: Value(body),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory Prompt.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Prompt(
+      version: serializer.fromJson<int>(json['version']),
+      body: serializer.fromJson<String>(json['body']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'version': serializer.toJson<int>(version),
+      'body': serializer.toJson<String>(body),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  Prompt copyWith({int? version, String? body, DateTime? updatedAt}) => Prompt(
+    version: version ?? this.version,
+    body: body ?? this.body,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  Prompt copyWithCompanion(PromptsCompanion data) {
+    return Prompt(
+      version: data.version.present ? data.version.value : this.version,
+      body: data.body.present ? data.body.value : this.body,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Prompt(')
+          ..write('version: $version, ')
+          ..write('body: $body, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(version, body, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Prompt &&
+          other.version == this.version &&
+          other.body == this.body &&
+          other.updatedAt == this.updatedAt);
+}
+
+class PromptsCompanion extends UpdateCompanion<Prompt> {
+  final Value<int> version;
+  final Value<String> body;
+  final Value<DateTime> updatedAt;
+  const PromptsCompanion({
+    this.version = const Value.absent(),
+    this.body = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
+  PromptsCompanion.insert({
+    this.version = const Value.absent(),
+    required String body,
+    required DateTime updatedAt,
+  }) : body = Value(body),
+       updatedAt = Value(updatedAt);
+  static Insertable<Prompt> custom({
+    Expression<int>? version,
+    Expression<String>? body,
+    Expression<DateTime>? updatedAt,
+  }) {
+    return RawValuesInsertable({
+      if (version != null) 'version': version,
+      if (body != null) 'body': body,
+      if (updatedAt != null) 'updated_at': updatedAt,
+    });
+  }
+
+  PromptsCompanion copyWith({
+    Value<int>? version,
+    Value<String>? body,
+    Value<DateTime>? updatedAt,
+  }) {
+    return PromptsCompanion(
+      version: version ?? this.version,
+      body: body ?? this.body,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
+    if (body.present) {
+      map['body'] = Variable<String>(body.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PromptsCompanion(')
+          ..write('version: $version, ')
+          ..write('body: $body, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $BriefingRunsTable briefingRuns = $BriefingRunsTable(this);
   late final $SnapshotItemsTable snapshotItems = $SnapshotItemsTable(this);
   late final $RunRatingsTable runRatings = $RunRatingsTable(this);
+  late final $PromptsTable prompts = $PromptsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1209,6 +1462,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     briefingRuns,
     snapshotItems,
     runRatings,
+    prompts,
   ];
 }
 
@@ -2273,6 +2527,154 @@ typedef $$RunRatingsTableProcessedTableManager =
       RunRating,
       PrefetchHooks Function({bool runId})
     >;
+typedef $$PromptsTableCreateCompanionBuilder = PromptsCompanion Function({
+  Value<int> version,
+  required String body,
+  required DateTime updatedAt,
+});
+typedef $$PromptsTableUpdateCompanionBuilder = PromptsCompanion Function({
+  Value<int> version,
+  Value<String> body,
+  Value<DateTime> updatedAt,
+});
+
+class $$PromptsTableFilterComposer
+    extends Composer<_$AppDatabase, $PromptsTable> {
+  $$PromptsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get body => $composableBuilder(
+    column: $table.body,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$PromptsTableOrderingComposer
+    extends Composer<_$AppDatabase, $PromptsTable> {
+  $$PromptsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get body => $composableBuilder(
+    column: $table.body,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PromptsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PromptsTable> {
+  $$PromptsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<String> get body =>
+      $composableBuilder(column: $table.body, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$PromptsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PromptsTable,
+          Prompt,
+          $$PromptsTableFilterComposer,
+          $$PromptsTableOrderingComposer,
+          $$PromptsTableAnnotationComposer,
+          $$PromptsTableCreateCompanionBuilder,
+          $$PromptsTableUpdateCompanionBuilder,
+          (Prompt, BaseReferences<_$AppDatabase, $PromptsTable, Prompt>),
+          Prompt,
+          PrefetchHooks Function()
+        > {
+  $$PromptsTableTableManager(_$AppDatabase db, $PromptsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PromptsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PromptsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PromptsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> version = const Value.absent(),
+                Value<String> body = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+              }) => PromptsCompanion(
+                version: version,
+                body: body,
+                updatedAt: updatedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> version = const Value.absent(),
+                required String body,
+                required DateTime updatedAt,
+              }) => PromptsCompanion.insert(
+                version: version,
+                body: body,
+                updatedAt: updatedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$PromptsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PromptsTable,
+      Prompt,
+      $$PromptsTableFilterComposer,
+      $$PromptsTableOrderingComposer,
+      $$PromptsTableAnnotationComposer,
+      $$PromptsTableCreateCompanionBuilder,
+      $$PromptsTableUpdateCompanionBuilder,
+      (Prompt, BaseReferences<_$AppDatabase, $PromptsTable, Prompt>),
+      Prompt,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -2283,4 +2685,6 @@ class $AppDatabaseManager {
       $$SnapshotItemsTableTableManager(_db, _db.snapshotItems);
   $$RunRatingsTableTableManager get runRatings =>
       $$RunRatingsTableTableManager(_db, _db.runRatings);
+  $$PromptsTableTableManager get prompts =>
+      $$PromptsTableTableManager(_db, _db.prompts);
 }
