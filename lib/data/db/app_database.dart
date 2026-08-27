@@ -175,6 +175,53 @@ class AppDatabase extends _$AppDatabase {
       BriefingRunsCompanion(framingLine: Value(framingLine)),
     );
   }
+
+  /// Records a human's drag-to-reorder of [runId]'s Daily Agenda.
+  /// [correctedOrder] is every item id in the run's Candidate Set, in the
+  /// order the human chose. Never touches [SnapshotItems.fallbackRank] or
+  /// [SnapshotItems.producedRank] -- per ADR-0003, both the original and
+  /// the corrected order must stay queryable, so improvement is
+  /// measurable.
+  Future<void> recordCorrectedOrder({
+    required int runId,
+    required List<String> correctedOrder,
+  }) {
+    return transaction(() async {
+      for (final (rank, itemId) in correctedOrder.indexed) {
+        await (update(snapshotItems)
+              ..where((s) => s.runId.equals(runId) & s.itemId.equals(itemId)))
+            .write(SnapshotItemsCompanion(correctedRank: Value(rank)));
+      }
+    });
+  }
+
+  /// Records a coarse thumbs up/down (positive/non-positive [rating]) for
+  /// [runId] -- for days not worth reordering. One rating per run: rating
+  /// it again replaces the previous one rather than adding a second row.
+  Future<void> rateRun({required int runId, required int rating}) {
+    return transaction(() async {
+      final existing = await (select(
+        runRatings,
+      )..where((r) => r.runId.equals(runId))).getSingleOrNull();
+      final notedAt = DateTime.now();
+
+      if (existing != null) {
+        await (update(
+          runRatings,
+        )..where((r) => r.id.equals(existing.id))).write(
+          RunRatingsCompanion(rating: Value(rating), notedAt: Value(notedAt)),
+        );
+      } else {
+        await into(runRatings).insert(
+          RunRatingsCompanion.insert(
+            runId: runId,
+            rating: rating,
+            notedAt: notedAt,
+          ),
+        );
+      }
+    });
+  }
 }
 
 // `driftDatabase(name:)` always opens the database via

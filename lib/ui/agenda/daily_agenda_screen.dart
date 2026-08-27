@@ -170,25 +170,76 @@ class _AgendaBody extends ConsumerWidget {
     final isEmpty = rankedItems.isEmpty && result.allDayCommitments.isEmpty;
     final launchRunId = ref.watch(notificationLaunchRunIdProvider).value;
 
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
+    final header = Column(
       children: [
         if (result.framingLine != null) _FramingLine(text: result.framingLine!),
         _LastRunBanner(result: result),
+        const _RatingButtons(),
         if (launchRunId != null) const _OpenedFromNotificationBanner(),
         if (result.isPartial) _PartialDataBanner(message: result.error!),
         if (result.allDayCommitments.isNotEmpty)
           _AllDayHeader(commitments: result.allDayCommitments),
-        if (isEmpty)
+      ],
+    );
+
+    if (isEmpty) {
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          header,
           const Padding(
             key: Key('agendaEmpty'),
             padding: EdgeInsets.all(32),
             child: Center(child: Text('Nothing on your plate today.')),
-          )
-        else
-          for (final item in rankedItems) _AgendaTile(item: item),
+          ),
+        ],
+      );
+    }
+
+    return ReorderableListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      header: header,
+      onReorderItem: (oldIndex, newIndex) => ref
+          .read(dailyAgendaControllerProvider.notifier)
+          .reorder(oldIndex, newIndex),
+      children: [
+        for (final item in rankedItems)
+          _AgendaTile(key: ValueKey(item.id), item: item),
       ],
     );
+  }
+}
+
+class _RatingButtons extends ConsumerWidget {
+  const _RatingButtons();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Row(
+      children: [
+        const Spacer(),
+        IconButton(
+          key: const Key('thumbsUpButton'),
+          icon: const Icon(Icons.thumb_up_outlined),
+          tooltip: 'Good ranking',
+          onPressed: () => _rate(context, ref, 1),
+        ),
+        IconButton(
+          key: const Key('thumbsDownButton'),
+          icon: const Icon(Icons.thumb_down_outlined),
+          tooltip: "Not worth reordering, but wasn't great",
+          onPressed: () => _rate(context, ref, -1),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _rate(BuildContext context, WidgetRef ref, int rating) async {
+    await ref.read(dailyAgendaControllerProvider.notifier).rate(rating);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Noted.')));
+    }
   }
 }
 
@@ -329,7 +380,7 @@ class _AllDayHeader extends StatelessWidget {
 }
 
 class _AgendaTile extends StatelessWidget {
-  const _AgendaTile({required this.item});
+  const _AgendaTile({required super.key, required this.item});
 
   final AgendaItem item;
 
