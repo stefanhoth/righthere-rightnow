@@ -12,6 +12,15 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <!-- The alarm callback's own power allowlist is seconds long, too short
+         for two network syncs under Doze. This foreground service is what
+         actually runs the Briefing Run; see docs/adr/0002. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <!-- Needed for the service's own notification, and the Focus Pull
+         notification added in Task 2.4, to actually display on Android 13+. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application
         android:label="righthere_rightnow"
         android:name="${applicationName}"
@@ -60,6 +69,13 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
+
+        <!-- flutter_foreground_task's own service, per its README. Warning:
+             do not change the name. -->
+        <service
+            android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
+            android:foregroundServiceType="dataSync"
+            android:exported="false" />
 
         <!-- Our own receiver: recomputes and re-arms the next Briefing Run
              alarm from the current time on every trigger that could make the

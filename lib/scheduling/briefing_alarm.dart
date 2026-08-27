@@ -4,6 +4,7 @@ import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:righthere_rightnow/data/settings/run_time_storage.dart';
+import 'package:righthere_rightnow/scheduling/briefing_foreground_service.dart';
 import 'package:righthere_rightnow/scheduling/next_run_time.dart';
 import 'package:righthere_rightnow/scheduling/run_time.dart';
 
@@ -64,12 +65,15 @@ Future<void> scheduleNextBriefingAlarm({
 /// Fires at the scheduled time, in a fresh isolate with no access to
 /// main-isolate memory, globals, singletons or providers.
 ///
-/// Task 2.3 replaces the body with the real Briefing Run, run inside a
-/// foreground service. For now this only proves the alarm mechanism itself:
-/// that it fires and re-arms for the following day.
+/// Re-arms first, so tomorrow's run is guaranteed scheduled regardless of
+/// what happens during the actual run, then starts the foreground service
+/// that does the real work -- the alarm callback's own power allowlist is
+/// too short-lived for two network syncs.
 @pragma('vm:entry-point')
 Future<void> briefingAlarmCallback() async {
   await scheduleNextBriefingAlarm();
+  initializeBriefingService();
+  await startBriefingService();
 }
 
 /// Invoked by `RearmBroadcastReceiver` on boot, app update, or a system
