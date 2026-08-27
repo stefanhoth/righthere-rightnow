@@ -13,6 +13,7 @@ import 'package:righthere_rightnow/domain/agenda_item.dart';
 import 'package:righthere_rightnow/domain/priority.dart';
 import 'package:righthere_rightnow/domain/ranked_agenda.dart';
 import 'package:righthere_rightnow/domain/response_status.dart';
+import 'package:righthere_rightnow/ui/agenda/agenda_controller.dart';
 import 'package:righthere_rightnow/ui/agenda/daily_agenda_screen.dart';
 
 class _MockCalendarReader extends Mock implements CalendarReader {}
@@ -61,12 +62,19 @@ Commitment _commitment({
   );
 }
 
-Future<void> _pumpAgenda(WidgetTester tester, BriefingRunResult result) async {
+Future<void> _pumpAgenda(
+  WidgetTester tester,
+  BriefingRunResult result, {
+  int? notificationLaunchRunId,
+}) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
         briefingRunOrchestratorProvider.overrideWithValue(
           _FakeOrchestrator(result),
+        ),
+        notificationLaunchRunIdProvider.overrideWith(
+          (ref) async => notificationLaunchRunId,
         ),
       ],
       child: const MaterialApp(home: DailyAgendaScreen()),
@@ -177,6 +185,41 @@ void main() {
     await _pumpAgenda(tester, result);
 
     expect(find.byKey(const Key('joinConferenceButton')), findsOneWidget);
+  });
+
+  testWidgets('shows a banner when opened from the Focus Pull notification', (
+    tester,
+  ) async {
+    final result = BriefingRunResult(
+      runId: 1,
+      agenda: const RankedAgenda(items: [], rankedBy: RankedBy.fallback),
+      allDayCommitments: const [],
+      startedAt: DateTime(2026, 8, 26, 9),
+      completedAt: DateTime(2026, 8, 26, 9, 0, 5),
+    );
+
+    await _pumpAgenda(tester, result, notificationLaunchRunId: 1);
+
+    expect(
+      find.byKey(const Key('openedFromNotificationBanner')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('shows no banner when opened normally, not from a notification', (
+    tester,
+  ) async {
+    final result = BriefingRunResult(
+      runId: 1,
+      agenda: const RankedAgenda(items: [], rankedBy: RankedBy.fallback),
+      allDayCommitments: const [],
+      startedAt: DateTime(2026, 8, 26, 9),
+      completedAt: DateTime(2026, 8, 26, 9, 0, 5),
+    );
+
+    await _pumpAgenda(tester, result);
+
+    expect(find.byKey(const Key('openedFromNotificationBanner')), findsNothing);
   });
 
   testWidgets('all-day Commitments render as a header, not a ranked item', (
