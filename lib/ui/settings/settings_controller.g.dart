@@ -85,6 +85,46 @@ final class CalendarPermissionStatusProvider
 String _$calendarPermissionStatusHash() =>
     r'9ef88401c9ca294b41da9aeeb3cf08fad0d518d4';
 
+@ProviderFor(batteryOptimizationStatus)
+final batteryOptimizationStatusProvider = BatteryOptimizationStatusProvider._();
+
+final class BatteryOptimizationStatusProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<PermissionStatus>,
+          PermissionStatus,
+          FutureOr<PermissionStatus>
+        >
+    with $FutureModifier<PermissionStatus>, $FutureProvider<PermissionStatus> {
+  BatteryOptimizationStatusProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'batteryOptimizationStatusProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$batteryOptimizationStatusHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<PermissionStatus> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<PermissionStatus> create(Ref ref) {
+    return batteryOptimizationStatus(ref);
+  }
+}
+
+String _$batteryOptimizationStatusHash() =>
+    r'58af76a862f73c1996ac1fbf33287d17e55719e1';
+
 @ProviderFor(TokenEntryController)
 final tokenEntryControllerProvider = TokenEntryControllerProvider._();
 

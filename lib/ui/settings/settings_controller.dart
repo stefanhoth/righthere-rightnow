@@ -1,4 +1,7 @@
 import 'package:device_calendar_plus/device_calendar_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:righthere_rightnow/data/battery_optimization.dart'
+    as battery_optimization;
 import 'package:righthere_rightnow/data/providers.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -12,6 +15,11 @@ Future<String?> storedTodoistToken(Ref ref) {
 @riverpod
 Future<CalendarPermissionStatus> calendarPermissionStatus(Ref ref) {
   return DeviceCalendar().hasPermissions();
+}
+
+@riverpod
+Future<PermissionStatus> batteryOptimizationStatus(Ref ref) {
+  return battery_optimization.batteryOptimizationStatus();
 }
 
 enum TokenEntryStatus { idle, verifying, saved, invalid, error }

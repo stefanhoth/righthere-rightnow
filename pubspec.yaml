@@ -21,6 +21,11 @@ dependencies:
   http: ^1.6.0
   intl: ^0.20.3
   meta: ^1.19.0
+  # Pinned below 13.0.x: permission_handler_android 14.0.0 needs compileSdk
+  # 37, which AGP 9.1.0 (pinned in android/settings.gradle.kts) does not
+  # support -- 12.x pulls in permission_handler_android ^13.0.0 instead,
+  # which needs only compileSdk 35.
+  permission_handler: ^12.0.1
   riverpod_annotation: ^4.0.6
   sqlite3_flutter_libs: ^0.6.0+eol
   url_launcher: ^6.3.2

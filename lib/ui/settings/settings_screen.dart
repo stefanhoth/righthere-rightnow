@@ -2,6 +2,9 @@ import 'package:device_calendar_plus/device_calendar_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:righthere_rightnow/data/battery_optimization.dart'
+    as battery_optimization;
 import 'package:righthere_rightnow/scheduling/run_time.dart';
 import 'package:righthere_rightnow/ui/settings/run_time_controller.dart';
 import 'package:righthere_rightnow/ui/settings/settings_controller.dart';
@@ -29,6 +32,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final calendarPermission = ref.watch(calendarPermissionStatusProvider);
     final storedRunTime = ref.watch(storedRunTimeProvider);
     final nextScheduledRun = ref.watch(nextScheduledRunProvider);
+    final batteryOptimizationStatus = ref.watch(
+      batteryOptimizationStatusProvider,
+    );
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
@@ -134,6 +140,38 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             loading: () => const SizedBox.shrink(),
             error: (_, _) => const SizedBox.shrink(),
           ),
+          const SizedBox(height: 24),
+          Text(
+            'Battery optimisation',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 8),
+          batteryOptimizationStatus.when(
+            data: (status) => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _describeBatteryOptimizationStatus(status),
+                  key: const Key('batteryOptimizationStatus'),
+                ),
+                if (status != PermissionStatus.granted) ...[
+                  const SizedBox(height: 8),
+                  FilledButton(
+                    key: const Key('requestBatteryExemptionButton'),
+                    onPressed: () async {
+                      await battery_optimization
+                          .requestBatteryOptimizationExemption();
+                      ref.invalidate(batteryOptimizationStatusProvider);
+                    },
+                    child: const Text('Exempt from battery optimisation'),
+                  ),
+                ],
+              ],
+            ),
+            loading: () => const SizedBox.shrink(),
+            error: (_, _) =>
+                const Text('Could not read battery optimisation status.'),
+          ),
         ],
       ),
     );
@@ -155,6 +193,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   String _describeTimeOfDay(int hour, int minute) {
     final formatted = TimeOfDay(hour: hour, minute: minute).format(context);
     return 'Runs daily at $formatted';
+  }
+
+  String _describeBatteryOptimizationStatus(PermissionStatus status) {
+    return switch (status) {
+      PermissionStatus.granted =>
+        'Exempt from battery optimisation -- the morning briefing can run '
+            'in the background.',
+      _ =>
+        'Not exempt. The morning briefing may be delayed or skipped by '
+            'the device.',
+    };
   }
 
   String _describeCalendarPermission(CalendarPermissionStatus status) {

@@ -117,4 +117,40 @@ void main() {
 
     expect(storedRun.error, 'Todoist: 401 invalid token');
   });
+
+  test(
+    'latestBriefingRunCompletedAt is null when no run has ever happened',
+    () async {
+      expect(await db.latestBriefingRunCompletedAt(), isNull);
+    },
+  );
+
+  test(
+    'latestBriefingRunCompletedAt is the newest run, not the last inserted',
+    () async {
+      final older = DateTime.utc(2026, 8, 24);
+      final newer = DateTime.utc(2026, 8, 26);
+
+      await db
+          .into(db.briefingRuns)
+          .insert(
+            BriefingRunsCompanion.insert(
+              startedAt: newer,
+              completedAt: newer,
+              rankedBy: RankedBy.fallback,
+            ),
+          );
+      await db
+          .into(db.briefingRuns)
+          .insert(
+            BriefingRunsCompanion.insert(
+              startedAt: older,
+              completedAt: older,
+              rankedBy: RankedBy.fallback,
+            ),
+          );
+
+      expect(await db.latestBriefingRunCompletedAt(), newer);
+    },
+  );
 }

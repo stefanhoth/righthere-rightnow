@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:righthere_rightnow/data/battery_optimization.dart';
 import 'package:righthere_rightnow/scheduling/briefing_alarm.dart';
 import 'package:righthere_rightnow/scheduling/briefing_foreground_service.dart';
 import 'package:righthere_rightnow/scheduling/focus_pull_notification.dart';
@@ -13,6 +14,10 @@ void main() async {
     onDidReceiveNotificationResponse: onNotificationTap,
   );
   await requestFocusPullNotificationPermission();
+  // This app has no dedicated onboarding flow -- asked once per install,
+  // same as the notification permission above. A no-op once granted or
+  // permanently denied.
+  await requestBatteryOptimizationExemption();
   await initializeBriefingAlarm();
   runApp(const ProviderScope(child: RightHereRightNowApp()));
 }
