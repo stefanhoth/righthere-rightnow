@@ -15,6 +15,7 @@ import 'package:righthere_rightnow/domain/agenda_item.dart';
 import 'package:righthere_rightnow/domain/priority.dart';
 import 'package:righthere_rightnow/domain/ranked_agenda.dart';
 import 'package:righthere_rightnow/domain/response_status.dart';
+import 'package:righthere_rightnow/domain/task_due.dart';
 import 'package:righthere_rightnow/inference/inference_engine.dart';
 import 'package:righthere_rightnow/ui/agenda/agenda_controller.dart';
 import 'package:righthere_rightnow/ui/agenda/daily_agenda_screen.dart';
@@ -134,9 +135,7 @@ void main() {
     expect(find.byKey(const Key('lastRunTime')), findsOneWidget);
   });
 
-  testWidgets('a Commitment subtitle names the day it falls on', (
-    tester,
-  ) async {
+  testWidgets('a Commitment pill names the day it falls on', (tester) async {
     final tomorrow = DateTime.now().add(const Duration(days: 1));
     final commitment = _commitment(
       id: 'cal:tomorrow',
@@ -154,8 +153,39 @@ void main() {
 
     await _pumpAgenda(tester, result);
 
-    expect(find.textContaining('Tomorrow · '), findsOneWidget);
+    expect(find.textContaining('Tomorrow'), findsOneWidget);
   });
+
+  testWidgets(
+    'an overdue Task shows an overdue pill and unwrapped link title',
+    (tester) async {
+      final task = Task(
+        id: 'td:1',
+        title: '[Buy a pencil sharpener](https://example.com/p/123)',
+        priority: Priority.p3,
+        isRecurring: false,
+        due: TaskDue(
+          date: DateTime.now().subtract(const Duration(days: 19)),
+          hasTime: false,
+          isRecurring: false,
+        ),
+      );
+      final result = BriefingRunResult(
+        runId: 1,
+        candidateItems: const [],
+        agenda: RankedAgenda(items: [task], rankedBy: RankedBy.fallback),
+        allDayCommitments: const [],
+        startedAt: DateTime(2026, 8, 26, 9),
+        completedAt: DateTime(2026, 8, 26, 9, 0, 5),
+      );
+
+      await _pumpAgenda(tester, result);
+
+      expect(find.text('Buy a pencil sharpener'), findsOneWidget);
+      expect(find.textContaining('https://'), findsNothing);
+      expect(find.text('19d overdue'), findsOneWidget);
+    },
+  );
 
   testWidgets('shows the empty state when there is nothing to do', (
     tester,

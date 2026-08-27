@@ -7,8 +7,10 @@ import 'package:righthere_rightnow/briefing/ranking_explanation.dart';
 import 'package:righthere_rightnow/briefing/staleness.dart';
 import 'package:righthere_rightnow/domain/agenda_item.dart';
 import 'package:righthere_rightnow/ui/agenda/agenda_controller.dart';
-import 'package:righthere_rightnow/ui/agenda/day_label.dart';
+import 'package:righthere_rightnow/ui/agenda/agenda_pill.dart';
+import 'package:righthere_rightnow/ui/agenda/task_title.dart';
 import 'package:righthere_rightnow/ui/settings/settings_screen.dart';
+import 'package:simple_icons/simple_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class DailyAgendaScreen extends ConsumerWidget {
@@ -380,6 +382,15 @@ class _AllDayHeader extends StatelessWidget {
   }
 }
 
+/// Calendar Commitments carry a purple source mark, Todoist Tasks a teal one,
+/// so the two systems stay distinguishable at a glance and red is left to
+/// mean "overdue". The tint is the lightest step of each ramp, the mark the
+/// mid step.
+const _calendarTint = Color(0xFFEEEDFE);
+const _calendarMark = Color(0xFF534AB7);
+const _todoistTint = Color(0xFFE1F5EE);
+const _todoistMark = Color(0xFF0F6E56);
+
 class _AgendaTile extends StatelessWidget {
   const _AgendaTile({required super.key, required this.item});
 
@@ -387,40 +398,99 @@ class _AgendaTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final agendaItem = item;
-    final reason = rankingExplanation(agendaItem, DateTime.now);
-
-    return switch (agendaItem) {
-      Commitment() => ListTile(
-        key: ValueKey(agendaItem.id),
-        leading: const Icon(Icons.event),
-        title: Text(agendaItem.title),
-        subtitle: Text(
-          '${dayLabel(agendaItem.start, DateTime.now())} · '
-          '${DateFormat.jm().format(agendaItem.start)} - '
-          '${DateFormat.jm().format(agendaItem.end)} · $reason',
-        ),
-        trailing: agendaItem.conferenceUrl == null
-            ? null
-            : IconButton(
-                key: const Key('joinConferenceButton'),
-                icon: const Icon(Icons.videocam),
-                tooltip: 'Join',
-                onPressed: () =>
-                    launchUrl(Uri.parse(agendaItem.conferenceUrl!)),
-              ),
-      ),
-      Task() => ListTile(
-        key: ValueKey(agendaItem.id),
-        leading: const Icon(Icons.check_box_outlined),
-        title: Text(agendaItem.title),
-        subtitle: Text(
-          _taskDueText(agendaItem) == null
-              ? reason
-              : '${_taskDueText(agendaItem)} · $reason',
-        ),
-      ),
+    final now = DateTime.now();
+    final pill = agendaPillFor(item, now);
+    final parsedTitle = switch (item) {
+      Commitment() => null,
+      final Task task => parseTaskTitle(task.title),
     };
+    final (tint, mark, icon) = switch (item) {
+      Commitment() => (
+        _calendarTint,
+        _calendarMark,
+        SimpleIcons.googlecalendar,
+      ),
+      Task() => (_todoistTint, _todoistMark, SimpleIcons.todoist),
+    };
+    final secondary = _secondaryText(pill != null);
+    final link = parsedTitle?.link;
+
+    return ListTile(
+      key: ValueKey(item.id),
+      leading: Container(
+        width: 36,
+        height: 36,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: tint,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, size: 18, color: mark),
+      ),
+      title: _title(context, parsedTitle),
+      subtitle: (pill == null && secondary == null)
+          ? null
+          : _Subtitle(pill: pill, text: secondary),
+      trailing: _trailing(),
+      onTap: link == null ? null : () => launchUrl(link),
+    );
+  }
+
+  Widget _title(BuildContext context, ParsedTaskTitle? parsedTitle) {
+    if (parsedTitle == null) {
+      return Text(item.title);
+    }
+    if (parsedTitle.link == null) {
+      return Text(parsedTitle.text);
+    }
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Flexible(child: Text(parsedTitle.text)),
+        const SizedBox(width: 4),
+        Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Icon(
+            Icons.open_in_new,
+            size: 14,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+  }
+
+  String? _secondaryText(bool hasPill) {
+    final reason = rankingExplanation(item, DateTime.now);
+    return switch (item) {
+      final Commitment commitment => '${_durationLabel(commitment)} · $reason',
+      final Task task => _taskDueText(task) ?? (hasPill ? null : reason),
+    };
+  }
+
+  Widget? _trailing() {
+    final current = item;
+    if (current is Commitment && current.conferenceUrl != null) {
+      return IconButton(
+        key: const Key('joinConferenceButton'),
+        icon: const Icon(Icons.videocam),
+        tooltip: 'Join',
+        onPressed: () => launchUrl(Uri.parse(current.conferenceUrl!)),
+      );
+    }
+    return null;
+  }
+
+  String _durationLabel(Commitment commitment) {
+    final minutes = commitment.end.difference(commitment.start).inMinutes;
+    if (minutes < 60) {
+      return '$minutes min';
+    }
+    final hours = minutes / 60;
+    return hours == hours.roundToDouble()
+        ? '${hours.toInt()} hr'
+        : '${hours.toStringAsFixed(1)} hr';
   }
 
   String? _taskDueText(Task task) {
@@ -429,7 +499,75 @@ class _AgendaTile extends StatelessWidget {
       return null;
     }
     return due.hasTime
-        ? DateFormat.yMMMd().add_jm().format(due.date)
-        : DateFormat.yMMMd().format(due.date);
+        ? DateFormat.MMMd().add_jm().format(due.date)
+        : DateFormat.MMMd().format(due.date);
+  }
+}
+
+class _Subtitle extends StatelessWidget {
+  const _Subtitle({required this.pill, required this.text});
+
+  final AgendaPill? pill;
+  final String? text;
+
+  @override
+  Widget build(BuildContext context) {
+    final currentPill = pill;
+    final currentText = text;
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        children: [
+          if (currentPill != null) _StatusPill(currentPill),
+          if (currentPill != null && currentText != null)
+            const SizedBox(width: 6),
+          if (currentText != null)
+            Expanded(
+              child: Text(
+                currentText,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusPill extends StatelessWidget {
+  const _StatusPill(this.pill);
+
+  final AgendaPill pill;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    // Material's ColorScheme has no "warning" role, so the amber pair is
+    // spelled out rather than pulled from the theme.
+    final (background, foreground) = switch (pill.tone) {
+      PillTone.urgent => (scheme.errorContainer, scheme.onErrorContainer),
+      PillTone.warning => (const Color(0xFFFAEEDA), const Color(0xFF633806)),
+      PillTone.neutral => (
+        scheme.surfaceContainerHighest,
+        scheme.onSurfaceVariant,
+      ),
+      PillTone.info => (scheme.secondaryContainer, scheme.onSecondaryContainer),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        pill.label,
+        style: Theme.of(context).textTheme.labelSmall
+            ?.copyWith(color: foreground, fontWeight: FontWeight.w500),
+      ),
+    );
   }
 }
