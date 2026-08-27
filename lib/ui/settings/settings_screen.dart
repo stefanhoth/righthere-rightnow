@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:righthere_rightnow/data/battery_optimization.dart'
     as battery_optimization;
 import 'package:righthere_rightnow/scheduling/run_time.dart';
+import 'package:righthere_rightnow/ui/dev/prompt_screen.dart';
 import 'package:righthere_rightnow/ui/settings/run_time_controller.dart';
 import 'package:righthere_rightnow/ui/settings/settings_controller.dart';
 
@@ -171,6 +172,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             loading: () => const SizedBox.shrink(),
             error: (_, _) =>
                 const Text('Could not read battery optimisation status.'),
+          ),
+          const SizedBox(height: 24),
+          Text('Developer', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          FilledButton(
+            key: const Key('editPromptButton'),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const PromptScreen()),
+            ),
+            child: const Text('Edit ranking prompt'),
           ),
         ],
       ),

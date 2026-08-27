@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart' hide isNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:righthere_rightnow/briefing/prompt.dart';
 import 'package:righthere_rightnow/data/db/app_database.dart';
 import 'package:righthere_rightnow/domain/ranked_agenda.dart';
 
@@ -153,4 +154,49 @@ void main() {
       expect(await db.latestBriefingRunCompletedAt(), newer);
     },
   );
+
+  test(
+    'activePromptText seeds and returns the shipped default on first use',
+    () async {
+      expect(await db.activePromptText(), defaultPromptText);
+      expect(await db.activePromptVersion(), 1);
+    },
+  );
+
+  test('updatePrompt becomes the active prompt at a higher version', () async {
+    await db.activePromptText(); // seeds version 1
+
+    await db.updatePrompt('Rank by urgency only.');
+
+    expect(await db.activePromptText(), 'Rank by urgency only.');
+    expect(await db.activePromptVersion(), 2);
+  });
+
+  test(
+    'resetPromptToDefault restores the shipped text at a new version',
+    () async {
+      await db.activePromptText(); // seeds version 1
+      await db.updatePrompt('Rank by urgency only.');
+
+      await db.resetPromptToDefault();
+
+      expect(await db.activePromptText(), defaultPromptText);
+      expect(await db.activePromptVersion(), 3);
+    },
+  );
+
+  test('earlier prompt versions remain queryable for replay', () async {
+    await db.activePromptText(); // seeds version 1
+    await db.updatePrompt('v2 text');
+    await db.updatePrompt('v3 text');
+
+    final allVersions = await db.select(db.prompts).get();
+
+    expect(allVersions, hasLength(3));
+    expect(allVersions.map((p) => p.body), [
+      defaultPromptText,
+      'v2 text',
+      'v3 text',
+    ]);
+  });
 }
