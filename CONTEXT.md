@@ -49,3 +49,9 @@ reordering of what went in.
 An Agenda Item inferred from a past Commitment rather than read from a source
 system — work a meeting appears to have created. It exists only inside this app
 and is always distinguishable from an Agenda Item that came from a source.
+
+**Inference Engine**:
+The on-device model behind a narrow interface: given a prompt, it returns
+text. Starts as Gemini Nano; every caller goes through the interface so the
+concrete engine can change without touching them.
+_Avoid_: model, LLM (unless specifically discussing the underlying model)
