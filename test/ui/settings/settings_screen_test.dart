@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage_platform_interface/flutter_secure_storage_platform_interface.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:righthere_rightnow/data/providers.dart';
 import 'package:righthere_rightnow/data/todoist/todoist_client.dart';
 import 'package:righthere_rightnow/ui/settings/settings_controller.dart';
@@ -69,6 +70,7 @@ class _FakeTodoistClient extends TodoistClient {
 Future<void> _pumpSettingsScreen(
   WidgetTester tester, {
   required bool tokenIsValid,
+  PermissionStatus batteryOptimizationStatus = PermissionStatus.granted,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
@@ -78,6 +80,9 @@ Future<void> _pumpSettingsScreen(
         ),
         calendarPermissionStatusProvider.overrideWith(
           (ref) async => CalendarPermissionStatus.granted,
+        ),
+        batteryOptimizationStatusProvider.overrideWith(
+          (ref) async => batteryOptimizationStatus,
         ),
       ],
       child: const MaterialApp(home: SettingsScreen()),
@@ -128,5 +133,32 @@ void main() {
 
     expect(find.byKey(const Key('storedRunTime')), findsOneWidget);
     expect(find.byKey(const Key('nextScheduledRun')), findsOneWidget);
+  });
+
+  testWidgets('a granted battery exemption is reported with no action needed', (
+    tester,
+  ) async {
+    await _pumpSettingsScreen(tester, tokenIsValid: true);
+
+    expect(find.byKey(const Key('batteryOptimizationStatus')), findsOneWidget);
+    expect(
+      find.byKey(const Key('requestBatteryExemptionButton')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('a denied battery exemption offers a button to request it', (
+    tester,
+  ) async {
+    await _pumpSettingsScreen(
+      tester,
+      tokenIsValid: true,
+      batteryOptimizationStatus: PermissionStatus.denied,
+    );
+
+    expect(
+      find.byKey(const Key('requestBatteryExemptionButton')),
+      findsOneWidget,
+    );
   });
 }

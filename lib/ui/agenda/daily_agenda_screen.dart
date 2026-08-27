@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:righthere_rightnow/briefing/briefing_run_orchestrator.dart';
 import 'package:righthere_rightnow/briefing/ranking_explanation.dart';
+import 'package:righthere_rightnow/briefing/staleness.dart';
 import 'package:righthere_rightnow/domain/agenda_item.dart';
 import 'package:righthere_rightnow/ui/agenda/agenda_controller.dart';
 import 'package:righthere_rightnow/ui/settings/settings_screen.dart';
@@ -15,6 +16,17 @@ class DailyAgendaScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final agendaState = ref.watch(dailyAgendaControllerProvider);
+    // Watched here, not inside the AsyncData branch below: the live run
+    // `dailyAgendaControllerProvider` triggers on every open invalidates
+    // this as soon as it completes, so reading it only alongside the
+    // finished agenda would always see the just-refreshed, non-stale value.
+    final lastRunCompletedAt = ref
+        .watch(lastBriefingRunCompletedAtProvider)
+        .value;
+    final showStaleBanner = isStale(
+      lastRunCompletedAt: lastRunCompletedAt,
+      clock: DateTime.now,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -29,14 +41,65 @@ class DailyAgendaScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: () =>
-            ref.read(dailyAgendaControllerProvider.notifier).refresh(),
-        child: switch (agendaState) {
-          AsyncData(:final value) => _AgendaBody(result: value),
-          AsyncError(:final error) => _ErrorView(message: '$error'),
-          _ => const _LoadingView(),
-        },
+      body: Column(
+        children: [
+          if (showStaleBanner)
+            _StaleBanner(
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
+              ),
+            ),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () =>
+                  ref.read(dailyAgendaControllerProvider.notifier).refresh(),
+              child: switch (agendaState) {
+                AsyncData(:final value) => _AgendaBody(result: value),
+                AsyncError(:final error) => _ErrorView(message: '$error'),
+                _ => const _LoadingView(),
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StaleBanner extends StatelessWidget {
+  const _StaleBanner({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      key: const Key('staleBanner'),
+      color: Theme.of(context).colorScheme.errorContainer,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              Icon(
+                Icons.warning_amber,
+                color: Theme.of(context).colorScheme.onErrorContainer,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'No Daily Agenda has run in over a day. Check battery '
+                  'settings so your morning briefing can run in the '
+                  'background.',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onErrorContainer,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

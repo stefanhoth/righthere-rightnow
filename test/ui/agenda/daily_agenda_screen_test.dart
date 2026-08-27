@@ -66,6 +66,7 @@ Future<void> _pumpAgenda(
   WidgetTester tester,
   BriefingRunResult result, {
   int? notificationLaunchRunId,
+  DateTime? lastBriefingRunCompletedAt,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
@@ -75,6 +76,9 @@ Future<void> _pumpAgenda(
         ),
         notificationLaunchRunIdProvider.overrideWith(
           (ref) async => notificationLaunchRunId,
+        ),
+        lastBriefingRunCompletedAtProvider.overrideWith(
+          (ref) async => lastBriefingRunCompletedAt,
         ),
       ],
       child: const MaterialApp(home: DailyAgendaScreen()),
@@ -220,6 +224,48 @@ void main() {
     await _pumpAgenda(tester, result);
 
     expect(find.byKey(const Key('openedFromNotificationBanner')), findsNothing);
+  });
+
+  testWidgets('shows a stale banner when the last run is over a day old', (
+    tester,
+  ) async {
+    final result = BriefingRunResult(
+      runId: 1,
+      agenda: const RankedAgenda(items: [], rankedBy: RankedBy.fallback),
+      allDayCommitments: const [],
+      startedAt: DateTime(2026, 8, 26, 9),
+      completedAt: DateTime(2026, 8, 26, 9, 0, 5),
+    );
+
+    await _pumpAgenda(
+      tester,
+      result,
+      lastBriefingRunCompletedAt: DateTime.now().subtract(
+        const Duration(days: 3),
+      ),
+    );
+
+    expect(find.byKey(const Key('staleBanner')), findsOneWidget);
+  });
+
+  testWidgets('shows no stale banner when the last run is recent', (
+    tester,
+  ) async {
+    final result = BriefingRunResult(
+      runId: 1,
+      agenda: const RankedAgenda(items: [], rankedBy: RankedBy.fallback),
+      allDayCommitments: const [],
+      startedAt: DateTime(2026, 8, 26, 9),
+      completedAt: DateTime(2026, 8, 26, 9, 0, 5),
+    );
+
+    await _pumpAgenda(
+      tester,
+      result,
+      lastBriefingRunCompletedAt: DateTime.now(),
+    );
+
+    expect(find.byKey(const Key('staleBanner')), findsNothing);
   });
 
   testWidgets('all-day Commitments render as a header, not a ranked item', (

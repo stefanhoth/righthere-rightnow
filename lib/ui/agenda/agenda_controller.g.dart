@@ -34,7 +34,7 @@ final class DailyAgendaControllerProvider
 }
 
 String _$dailyAgendaControllerHash() =>
-    r'1da6fa7a51dc0939a7e28203eedcad9a9996f11a';
+    r'997254aa5b9ecadb78e78a5a992ccb18eefe07d0';
 
 abstract class _$DailyAgendaController
     extends $AsyncNotifier<BriefingRunResult> {
@@ -100,3 +100,54 @@ final class NotificationLaunchRunIdProvider
 
 String _$notificationLaunchRunIdHash() =>
     r'd2b103a4a32dd0b926aeafc5874b48d936b3a711';
+
+/// When the newest Briefing Run finished, read fresh whenever
+/// [DailyAgendaController] completes one -- including the live run it
+/// triggers on every open, so a successful open always clears staleness.
+
+@ProviderFor(lastBriefingRunCompletedAt)
+final lastBriefingRunCompletedAtProvider =
+    LastBriefingRunCompletedAtProvider._();
+
+/// When the newest Briefing Run finished, read fresh whenever
+/// [DailyAgendaController] completes one -- including the live run it
+/// triggers on every open, so a successful open always clears staleness.
+
+final class LastBriefingRunCompletedAtProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<DateTime?>,
+          DateTime?,
+          FutureOr<DateTime?>
+        >
+    with $FutureModifier<DateTime?>, $FutureProvider<DateTime?> {
+  /// When the newest Briefing Run finished, read fresh whenever
+  /// [DailyAgendaController] completes one -- including the live run it
+  /// triggers on every open, so a successful open always clears staleness.
+  LastBriefingRunCompletedAtProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'lastBriefingRunCompletedAtProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$lastBriefingRunCompletedAtHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<DateTime?> $createElement($ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<DateTime?> create(Ref ref) {
+    return lastBriefingRunCompletedAt(ref);
+  }
+}
+
+String _$lastBriefingRunCompletedAtHash() =>
+    r'72e695d4a5dfbb313dc5f7f0b031cce793f616b6';

@@ -61,6 +61,17 @@ class AppDatabase extends _$AppDatabase {
   @override
   MigrationStrategy get migration =>
       MigrationStrategy(onCreate: (m) => m.createAll());
+
+  /// When the most recent Briefing Run finished, or null if none ever has.
+  /// Used to tell a silent alarm from a healthy one that just hasn't fired
+  /// yet today.
+  Future<DateTime?> latestBriefingRunCompletedAt() async {
+    final query = select(briefingRuns)
+      ..orderBy([(t) => OrderingTerm.desc(t.completedAt)])
+      ..limit(1);
+    final row = await query.getSingleOrNull();
+    return row?.completedAt;
+  }
 }
 
 // `driftDatabase(name:)` always opens the database via
