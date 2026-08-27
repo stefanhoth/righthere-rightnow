@@ -21,8 +21,8 @@
          notification added in Task 2.4, to actually display on Android 13+. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Lets the app ask to be exempted from Doze and App Standby, which
-         also lifts the foreground-service background-start restriction --
-         see docs/plan/milestone-2-briefing.md Task 2.6. -->
+         also lifts the foreground-service background-start restriction.
+         See docs/plan/milestone-2-briefing.md Task 2.6. -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <application
