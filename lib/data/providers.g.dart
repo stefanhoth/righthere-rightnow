@@ -190,6 +190,54 @@ final class RunTimeStorageProvider
 
 String _$runTimeStorageHash() => r'331efeecd6fc8b02ddb1438bc38dfac516c5050e';
 
+@ProviderFor(selectedCalendarsStorage)
+final selectedCalendarsStorageProvider = SelectedCalendarsStorageProvider._();
+
+final class SelectedCalendarsStorageProvider
+    extends
+        $FunctionalProvider<
+          SelectedCalendarsStorage,
+          SelectedCalendarsStorage,
+          SelectedCalendarsStorage
+        >
+    with $Provider<SelectedCalendarsStorage> {
+  SelectedCalendarsStorageProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'selectedCalendarsStorageProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$selectedCalendarsStorageHash();
+
+  @$internal
+  @override
+  $ProviderElement<SelectedCalendarsStorage> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  SelectedCalendarsStorage create(Ref ref) {
+    return selectedCalendarsStorage(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(SelectedCalendarsStorage value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<SelectedCalendarsStorage>(value),
+    );
+  }
+}
+
+String _$selectedCalendarsStorageHash() =>
+    r'd1dac90fa903515d6f2c048fe328c33d43768387';
+
 @ProviderFor(appDatabase)
 final appDatabaseProvider = AppDatabaseProvider._();
 

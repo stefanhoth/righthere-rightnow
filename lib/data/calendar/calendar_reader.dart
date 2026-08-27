@@ -2,6 +2,7 @@ import 'package:device_calendar_plus/device_calendar_plus.dart';
 import 'package:righthere_rightnow/data/calendar/calendar_exception.dart';
 import 'package:righthere_rightnow/data/calendar/calendar_rsvp_channel.dart';
 import 'package:righthere_rightnow/data/calendar/conference_link_extractor.dart';
+import 'package:righthere_rightnow/data/settings/selected_calendars_storage.dart';
 import 'package:righthere_rightnow/domain/agenda_item.dart';
 import 'package:righthere_rightnow/domain/response_status.dart';
 
@@ -14,18 +15,23 @@ class CalendarReader {
   CalendarReader({
     DeviceCalendar? deviceCalendar,
     CalendarRsvpChannel? rsvpChannel,
+    SelectedCalendarsStorage? selectedCalendars,
   }) : _deviceCalendar = deviceCalendar ?? DeviceCalendar(),
-       _rsvpChannel = rsvpChannel ?? CalendarRsvpChannel();
+       _rsvpChannel = rsvpChannel ?? CalendarRsvpChannel(),
+       _selectedCalendars = selectedCalendars ?? SelectedCalendarsStorage();
 
   final DeviceCalendar _deviceCalendar;
   final CalendarRsvpChannel _rsvpChannel;
+  final SelectedCalendarsStorage _selectedCalendars;
 
   Future<CalendarPermissionStatus> requestPermission() {
     return _deviceCalendar.requestPermissions();
   }
 
   /// Fetches Commitments overlapping the half-open range `[start, end)`,
-  /// skipping calendars the user has hidden.
+  /// skipping calendars the user has hidden or has not chosen in Settings.
+  ///
+  /// An empty selection means every visible calendar.
   ///
   /// Conference links are extracted from the description separately,
   /// without mutating it.
@@ -38,8 +44,13 @@ class CalendarReader {
       throw const CalendarPermissionDeniedException();
     }
 
+    final selectedIds = await _selectedCalendars.read();
     final visibleCalendars = (await _deviceCalendar.listCalendars())
         .where((calendar) => !calendar.hidden)
+        .where(
+          (calendar) =>
+              selectedIds.isEmpty || selectedIds.contains(calendar.id),
+        )
         .toList();
     final calendarNames = {
       for (final calendar in visibleCalendars) calendar.id: calendar.name,
