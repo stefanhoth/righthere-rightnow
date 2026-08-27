@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show OrderingTerm;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +8,7 @@ import 'package:righthere_rightnow/briefing/briefing_run_orchestrator.dart';
 import 'package:righthere_rightnow/briefing/providers.dart';
 import 'package:righthere_rightnow/data/calendar/calendar_reader.dart';
 import 'package:righthere_rightnow/data/db/app_database.dart';
+import 'package:righthere_rightnow/data/providers.dart';
 import 'package:righthere_rightnow/data/settings/todoist_token_storage.dart';
 import 'package:righthere_rightnow/data/todoist/todoist_client.dart';
 import 'package:righthere_rightnow/domain/agenda_item.dart';
@@ -81,6 +83,7 @@ Future<void> _pumpAgenda(
   BriefingRunResult result, {
   int? notificationLaunchRunId,
   DateTime? lastBriefingRunCompletedAt,
+  AppDatabase? database,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
@@ -95,6 +98,7 @@ Future<void> _pumpAgenda(
           (ref) async => lastBriefingRunCompletedAt,
         ),
         inferenceEngineProvider.overrideWithValue(_FakeUnavailableEngine()),
+        if (database != null) appDatabaseProvider.overrideWithValue(database),
       ],
       child: const MaterialApp(home: DailyAgendaScreen()),
     ),
@@ -246,6 +250,126 @@ void main() {
     await _pumpAgenda(tester, result);
 
     expect(find.byKey(const Key('openedFromNotificationBanner')), findsNothing);
+  });
+
+  testWidgets('dragging an item persists the corrected order', (tester) async {
+    final database = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(database.close);
+    final runId = await database
+        .into(database.briefingRuns)
+        .insert(
+          BriefingRunsCompanion.insert(
+            startedAt: DateTime(2026, 8, 26, 9),
+            completedAt: DateTime(2026, 8, 26, 9, 0, 5),
+            rankedBy: RankedBy.fallback,
+          ),
+        );
+    final commitment = _commitment(id: 'cal:standup');
+    const task = Task(
+      id: 'td:1',
+      title: 'File taxes',
+      priority: Priority.p1,
+      isRecurring: false,
+    );
+    await database
+        .into(database.snapshotItems)
+        .insert(
+          SnapshotItemsCompanion.insert(
+            runId: runId,
+            itemId: commitment.id,
+            payloadJson: '{}',
+            fallbackRank: 0,
+            producedRank: 0,
+          ),
+        );
+    await database
+        .into(database.snapshotItems)
+        .insert(
+          SnapshotItemsCompanion.insert(
+            runId: runId,
+            itemId: task.id,
+            payloadJson: '{}',
+            fallbackRank: 1,
+            producedRank: 1,
+          ),
+        );
+    final result = BriefingRunResult(
+      runId: runId,
+      candidateItems: const [],
+      agenda: RankedAgenda(
+        items: [commitment, task],
+        rankedBy: RankedBy.fallback,
+      ),
+      allDayCommitments: const [],
+      startedAt: DateTime(2026, 8, 26, 9),
+      completedAt: DateTime(2026, 8, 26, 9, 0, 5),
+    );
+
+    final container = ProviderContainer(
+      overrides: [
+        briefingRunOrchestratorProvider.overrideWithValue(
+          _FakeOrchestrator(result),
+        ),
+        inferenceEngineProvider.overrideWithValue(_FakeUnavailableEngine()),
+        appDatabaseProvider.overrideWithValue(database),
+      ],
+    );
+    addTearDown(container.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(home: DailyAgendaScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // A drag gesture on ReorderableListView is fiddly to simulate reliably
+    // in a widget test; this exercises the same controller method the
+    // list's `onReorderItem` callback calls, through the same container the
+    // widget reads from.
+    await container.read(dailyAgendaControllerProvider.notifier).reorder(0, 1);
+    await tester.pumpAndSettle();
+
+    final items = await (database.select(
+      database.snapshotItems,
+    )..orderBy([(s) => OrderingTerm.asc(s.itemId)])).get();
+    final byId = {for (final item in items) item.itemId: item};
+    expect(byId[commitment.id]!.correctedRank, 1);
+    expect(byId[task.id]!.correctedRank, 0);
+    // Original ranks are never touched.
+    expect(byId[commitment.id]!.fallbackRank, 0);
+    expect(byId[task.id]!.producedRank, 1);
+  });
+
+  testWidgets('rating a run persists a thumbs up', (tester) async {
+    final database = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(database.close);
+    final runId = await database
+        .into(database.briefingRuns)
+        .insert(
+          BriefingRunsCompanion.insert(
+            startedAt: DateTime(2026, 8, 26, 9),
+            completedAt: DateTime(2026, 8, 26, 9, 0, 5),
+            rankedBy: RankedBy.fallback,
+          ),
+        );
+    final result = BriefingRunResult(
+      runId: runId,
+      candidateItems: const [],
+      agenda: const RankedAgenda(items: [], rankedBy: RankedBy.fallback),
+      allDayCommitments: const [],
+      startedAt: DateTime(2026, 8, 26, 9),
+      completedAt: DateTime(2026, 8, 26, 9, 0, 5),
+    );
+
+    await _pumpAgenda(tester, result, database: database);
+    await tester.tap(find.byKey(const Key('thumbsUpButton')));
+    await tester.pumpAndSettle();
+
+    final rating = await database.select(database.runRatings).getSingle();
+    expect(rating.runId, runId);
+    expect(rating.rating, 1);
+    expect(find.text('Noted.'), findsOneWidget);
   });
 
   testWidgets('shows the framing line when the run has one', (tester) async {

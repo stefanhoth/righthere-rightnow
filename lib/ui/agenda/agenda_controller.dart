@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:righthere_rightnow/briefing/briefing_run_orchestrator.dart';
 import 'package:righthere_rightnow/briefing/providers.dart';
 import 'package:righthere_rightnow/data/providers.dart';
+import 'package:righthere_rightnow/domain/ranked_agenda.dart';
 import 'package:righthere_rightnow/scheduling/notification_navigation.dart'
     as notification_navigation;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -74,6 +75,49 @@ class DailyAgendaController extends _$DailyAgendaController {
     if (current != null && ref.mounted) {
       state = AsyncData(merge(current));
     }
+  }
+
+  /// A human dragged an Agenda Item to a new position. Updates the screen
+  /// immediately with the chosen order, and persists it as
+  /// `correctedRank` -- alongside, never over, the fallback and produced
+  /// ranks (ADR-0003), so both the original and the corrected order stay
+  /// queryable for any past run. Never touches calendar or Todoist data.
+  Future<void> reorder(int oldIndex, int newIndex) async {
+    final current = state.value;
+    if (current == null) {
+      return;
+    }
+
+    final reordered = [...current.agenda.items];
+    reordered.insert(newIndex, reordered.removeAt(oldIndex));
+
+    state = AsyncData(
+      current.copyWith(
+        agenda: RankedAgenda(
+          items: reordered,
+          rankedBy: current.agenda.rankedBy,
+          promptVersion: current.agenda.promptVersion,
+        ),
+      ),
+    );
+
+    await ref
+        .read(appDatabaseProvider)
+        .recordCorrectedOrder(
+          runId: current.runId,
+          correctedOrder: reordered.map((item) => item.id).toList(),
+        );
+  }
+
+  /// A coarse thumbs up/down for this run, for a day not worth reordering.
+  Future<void> rate(int rating) async {
+    final current = state.value;
+    if (current == null) {
+      return;
+    }
+    await ref
+        .read(appDatabaseProvider)
+        .rateRun(runId: current.runId, rating: rating);
   }
 }
 

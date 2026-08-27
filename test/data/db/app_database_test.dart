@@ -221,4 +221,91 @@ void main() {
     )..where((r) => r.id.equals(runId))).getSingle();
     expect(storedRun.framingLine, 'Heavy meeting day -- protect the morning.');
   });
+
+  test('recordCorrectedOrder sets correctedRank without touching fallbackRank or producedRank', () async {
+    final runId = await db
+        .into(db.briefingRuns)
+        .insert(
+          BriefingRunsCompanion.insert(
+            startedAt: DateTime.utc(2026, 8, 26),
+            completedAt: DateTime.utc(2026, 8, 26, 0, 0, 5),
+            rankedBy: RankedBy.fallback,
+          ),
+        );
+    await db
+        .into(db.snapshotItems)
+        .insert(
+          SnapshotItemsCompanion.insert(
+            runId: runId,
+            itemId: 'a',
+            payloadJson: '{}',
+            fallbackRank: 0,
+            producedRank: 0,
+          ),
+        );
+    await db
+        .into(db.snapshotItems)
+        .insert(
+          SnapshotItemsCompanion.insert(
+            runId: runId,
+            itemId: 'b',
+            payloadJson: '{}',
+            fallbackRank: 1,
+            producedRank: 1,
+          ),
+        );
+
+    await db.recordCorrectedOrder(runId: runId, correctedOrder: ['b', 'a']);
+
+    final items =
+        await (db.select(db.snapshotItems)
+              ..where((s) => s.runId.equals(runId))
+              ..orderBy([(s) => OrderingTerm.asc(s.itemId)]))
+            .get();
+    final byId = {for (final item in items) item.itemId: item};
+
+    expect(byId['a']!.correctedRank, 1);
+    expect(byId['a']!.fallbackRank, 0);
+    expect(byId['a']!.producedRank, 0);
+    expect(byId['b']!.correctedRank, 0);
+    expect(byId['b']!.fallbackRank, 1);
+    expect(byId['b']!.producedRank, 1);
+  });
+
+  test('rateRun records a new rating', () async {
+    final runId = await db
+        .into(db.briefingRuns)
+        .insert(
+          BriefingRunsCompanion.insert(
+            startedAt: DateTime.utc(2026, 8, 26),
+            completedAt: DateTime.utc(2026, 8, 26, 0, 0, 5),
+            rankedBy: RankedBy.fallback,
+          ),
+        );
+
+    await db.rateRun(runId: runId, rating: 1);
+
+    final rating = await db.select(db.runRatings).getSingle();
+    expect(rating.runId, runId);
+    expect(rating.rating, 1);
+  });
+
+  test('rateRun replaces a previous rating for the same run', () async {
+    final runId = await db
+        .into(db.briefingRuns)
+        .insert(
+          BriefingRunsCompanion.insert(
+            startedAt: DateTime.utc(2026, 8, 26),
+            completedAt: DateTime.utc(2026, 8, 26, 0, 0, 5),
+            rankedBy: RankedBy.fallback,
+          ),
+        );
+
+    await db.rateRun(runId: runId, rating: 1);
+    await db.rateRun(runId: runId, rating: -1);
+
+    final ratings = await db.select(db.runRatings).get();
+    expect(ratings, hasLength(1));
+    expect(ratings.single.rating, -1);
+  });
 }
