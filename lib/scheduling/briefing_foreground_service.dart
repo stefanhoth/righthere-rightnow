@@ -4,6 +4,7 @@ import 'package:righthere_rightnow/data/calendar/calendar_reader.dart';
 import 'package:righthere_rightnow/data/db/app_database.dart';
 import 'package:righthere_rightnow/data/settings/todoist_token_storage.dart';
 import 'package:righthere_rightnow/data/todoist/todoist_client.dart';
+import 'package:righthere_rightnow/scheduling/focus_pull_notification.dart';
 
 /// Separate from the Focus Pull notification channel (Task 2.4) -- this one
 /// is only visible while a run is actually in flight.
@@ -66,7 +67,12 @@ class _BriefingTaskHandler extends TaskHandler {
     );
 
     try {
-      await orchestrator.run();
+      final result = await orchestrator.run();
+      await initializeFocusPullNotifications();
+      await showFocusPullNotification(
+        rankedItems: result.agenda.items,
+        runId: result.runId,
+      );
     } finally {
       await FlutterForegroundTask.stopService();
     }
