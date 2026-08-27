@@ -9,6 +9,9 @@ import 'package:righthere_rightnow/data/todoist/todoist_client.dart';
 import 'package:righthere_rightnow/ui/settings/settings_controller.dart';
 import 'package:righthere_rightnow/ui/settings/settings_screen.dart';
 
+Calendar _calendar(String id, String name) =>
+    Calendar(id: id, name: name, readOnly: false);
+
 class _FakeSecureStoragePlatform extends FlutterSecureStoragePlatform {
   final Map<String, String> _values = {};
 
@@ -71,6 +74,7 @@ Future<void> _pumpSettingsScreen(
   WidgetTester tester, {
   required bool tokenIsValid,
   PermissionStatus batteryOptimizationStatus = PermissionStatus.granted,
+  List<Calendar> calendars = const [],
 }) async {
   await tester.pumpWidget(
     ProviderScope(
@@ -81,6 +85,7 @@ Future<void> _pumpSettingsScreen(
         calendarPermissionStatusProvider.overrideWith(
           (ref) async => CalendarPermissionStatus.granted,
         ),
+        availableCalendarsProvider.overrideWith((ref) async => calendars),
         batteryOptimizationStatusProvider.overrideWith(
           (ref) async => batteryOptimizationStatus,
         ),
@@ -100,6 +105,47 @@ void main() {
     await _pumpSettingsScreen(tester, tokenIsValid: true);
 
     expect(find.text('Calendar access granted.'), findsOneWidget);
+  });
+
+  testWidgets('lists a checkbox per calendar, all included by default', (
+    tester,
+  ) async {
+    await _pumpSettingsScreen(
+      tester,
+      tokenIsValid: true,
+      calendars: [_calendar('work', 'Work'), _calendar('personal', 'Personal')],
+    );
+
+    final work = tester.widget<CheckboxListTile>(
+      find.byKey(const Key('calendarCheckbox:work')),
+    );
+    final personal = tester.widget<CheckboxListTile>(
+      find.byKey(const Key('calendarCheckbox:personal')),
+    );
+    expect(work.value, isTrue);
+    expect(personal.value, isTrue);
+  });
+
+  testWidgets('unchecking a calendar persists a selection without it', (
+    tester,
+  ) async {
+    await _pumpSettingsScreen(
+      tester,
+      tokenIsValid: true,
+      calendars: [_calendar('work', 'Work'), _calendar('personal', 'Personal')],
+    );
+
+    await tester.tap(find.byKey(const Key('calendarCheckbox:personal')));
+    await tester.pumpAndSettle();
+
+    final work = tester.widget<CheckboxListTile>(
+      find.byKey(const Key('calendarCheckbox:work')),
+    );
+    final personal = tester.widget<CheckboxListTile>(
+      find.byKey(const Key('calendarCheckbox:personal')),
+    );
+    expect(work.value, isTrue);
+    expect(personal.value, isFalse);
   });
 
   testWidgets('a valid token is saved and reported', (tester) async {

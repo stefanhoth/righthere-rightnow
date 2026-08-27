@@ -4,11 +4,24 @@ import 'package:mocktail/mocktail.dart';
 import 'package:righthere_rightnow/data/calendar/calendar_exception.dart';
 import 'package:righthere_rightnow/data/calendar/calendar_reader.dart';
 import 'package:righthere_rightnow/data/calendar/calendar_rsvp_channel.dart';
+import 'package:righthere_rightnow/data/settings/selected_calendars_storage.dart';
 import 'package:righthere_rightnow/domain/response_status.dart';
 
 class _MockDeviceCalendar extends Mock implements DeviceCalendar {}
 
 class _MockCalendarRsvpChannel extends Mock implements CalendarRsvpChannel {}
+
+class _FakeSelectedCalendarsStorage implements SelectedCalendarsStorage {
+  _FakeSelectedCalendarsStorage([this._ids = const {}]);
+
+  Set<String> _ids;
+
+  @override
+  Future<Set<String>> read() async => _ids;
+
+  @override
+  Future<void> write(Set<String> calendarIds) async => _ids = calendarIds;
+}
 
 Calendar _calendar({
   required String id,
@@ -49,6 +62,7 @@ Event _event({
 void main() {
   late _MockDeviceCalendar deviceCalendar;
   late _MockCalendarRsvpChannel rsvpChannel;
+  late _FakeSelectedCalendarsStorage selectedCalendars;
   late CalendarReader reader;
 
   final start = DateTime.utc(2026, 8, 26);
@@ -61,9 +75,11 @@ void main() {
   setUp(() {
     deviceCalendar = _MockDeviceCalendar();
     rsvpChannel = _MockCalendarRsvpChannel();
+    selectedCalendars = _FakeSelectedCalendarsStorage();
     reader = CalendarReader(
       deviceCalendar: deviceCalendar,
       rsvpChannel: rsvpChannel,
+      selectedCalendars: selectedCalendars,
     );
     when(() => deviceCalendar.hasPermissions())
         .thenAnswer((_) async => CalendarPermissionStatus.granted);
@@ -114,6 +130,70 @@ void main() {
             ).captured.single
             as List<String>;
     expect(calendarIds, ['work']);
+  });
+
+  test('reads only the calendars the user selected', () async {
+    selectedCalendars = _FakeSelectedCalendarsStorage({'personal'});
+    reader = CalendarReader(
+      deviceCalendar: deviceCalendar,
+      rsvpChannel: rsvpChannel,
+      selectedCalendars: selectedCalendars,
+    );
+    when(() => deviceCalendar.listCalendars()).thenAnswer(
+      (_) async => [
+        _calendar(id: 'work', name: 'Work'),
+        _calendar(id: 'personal', name: 'Personal'),
+      ],
+    );
+    when(
+      () => deviceCalendar.listEvents(
+        any(),
+        any(),
+        calendarIds: any(named: 'calendarIds'),
+      ),
+    ).thenAnswer((_) async => []);
+
+    await reader.fetchCommitments(start: start, end: end);
+
+    final calendarIds =
+        verify(
+              () => deviceCalendar.listEvents(
+                any(),
+                any(),
+                calendarIds: captureAny(named: 'calendarIds'),
+              ),
+            ).captured.single
+            as List<String>;
+    expect(calendarIds, ['personal']);
+  });
+
+  test('an empty selection means every visible calendar', () async {
+    when(() => deviceCalendar.listCalendars()).thenAnswer(
+      (_) async => [
+        _calendar(id: 'work', name: 'Work'),
+        _calendar(id: 'personal', name: 'Personal'),
+      ],
+    );
+    when(
+      () => deviceCalendar.listEvents(
+        any(),
+        any(),
+        calendarIds: any(named: 'calendarIds'),
+      ),
+    ).thenAnswer((_) async => []);
+
+    await reader.fetchCommitments(start: start, end: end);
+
+    final calendarIds =
+        verify(
+              () => deviceCalendar.listEvents(
+                any(),
+                any(),
+                calendarIds: captureAny(named: 'calendarIds'),
+              ),
+            ).captured.single
+            as List<String>;
+    expect(calendarIds, ['work', 'personal']);
   });
 
   test(

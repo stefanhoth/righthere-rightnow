@@ -104,9 +104,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           Text('Calendar', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           calendarPermission.when(
-            data: (status) => Text(
-              _describeCalendarPermission(status),
-              key: const Key('calendarPermissionStatus'),
+            data: (status) => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _describeCalendarPermission(status),
+                  key: const Key('calendarPermissionStatus'),
+                ),
+                if (status == CalendarPermissionStatus.granted) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Include these calendars in your Daily Agenda:',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const _CalendarChecklist(),
+                ],
+              ],
             ),
             loading: () => const SizedBox.shrink(),
             error: (_, _) => const Text('Could not read calendar permission.'),
@@ -227,5 +240,52 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       CalendarPermissionStatus.notDetermined =>
         'Calendar access not yet requested.',
     };
+  }
+}
+
+/// One checkbox per calendar. A box is ticked when the calendar is in the
+/// stored selection, or when the selection is empty -- an empty selection
+/// means every calendar.
+class _CalendarChecklist extends ConsumerWidget {
+  const _CalendarChecklist();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final calendars = ref.watch(availableCalendarsProvider);
+    final selected =
+        ref.watch(selectedCalendarIdsProvider).value ?? const <String>{};
+
+    return calendars.when(
+      data: (list) {
+        final allIds = {for (final calendar in list) calendar.id};
+        return Column(
+          children: [
+            for (final calendar in list)
+              CheckboxListTile(
+                key: Key('calendarCheckbox:${calendar.id}'),
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                title: Text(calendar.name),
+                subtitle: calendar.accountName == null
+                    ? null
+                    : Text(calendar.accountName!),
+                value: selected.isEmpty || selected.contains(calendar.id),
+                onChanged: (value) => ref
+                    .read(selectedCalendarsControllerProvider.notifier)
+                    .setSelected(
+                      calendar.id,
+                      selected: value ?? false,
+                      allCalendarIds: allIds,
+                    ),
+              ),
+          ],
+        );
+      },
+      loading: () => const Padding(
+        padding: EdgeInsets.symmetric(vertical: 8),
+        child: LinearProgressIndicator(),
+      ),
+      error: (_, _) => const Text('Could not list your calendars.'),
+    );
   }
 }
