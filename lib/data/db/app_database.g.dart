@@ -73,6 +73,17 @@ class $BriefingRunsTable extends BriefingRuns
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _framingLineMeta = const VerificationMeta(
+    'framingLine',
+  );
+  @override
+  late final GeneratedColumn<String> framingLine = GeneratedColumn<String>(
+    'framing_line',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -81,6 +92,7 @@ class $BriefingRunsTable extends BriefingRuns
     rankedBy,
     promptVersion,
     error,
+    framingLine,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -131,6 +143,15 @@ class $BriefingRunsTable extends BriefingRuns
         error.isAcceptableOrUnknown(data['error']!, _errorMeta),
       );
     }
+    if (data.containsKey('framing_line')) {
+      context.handle(
+        _framingLineMeta,
+        framingLine.isAcceptableOrUnknown(
+          data['framing_line']!,
+          _framingLineMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -166,6 +187,10 @@ class $BriefingRunsTable extends BriefingRuns
         DriftSqlType.string,
         data['${effectivePrefix}error'],
       ),
+      framingLine: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}framing_line'],
+      ),
     );
   }
 
@@ -185,6 +210,12 @@ class BriefingRun extends DataClass implements Insertable<BriefingRun> {
   final RankedBy rankedBy;
   final String? promptVersion;
   final String? error;
+
+  /// The one generated sentence shown at the top of the Daily Agenda
+  /// screen. Set only once, at app-open, alongside the model's re-ranking
+  /// attempt -- null until then, and forever if inference never succeeds
+  /// for this run.
+  final String? framingLine;
   const BriefingRun({
     required this.id,
     required this.startedAt,
@@ -192,6 +223,7 @@ class BriefingRun extends DataClass implements Insertable<BriefingRun> {
     required this.rankedBy,
     this.promptVersion,
     this.error,
+    this.framingLine,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -210,6 +242,9 @@ class BriefingRun extends DataClass implements Insertable<BriefingRun> {
     if (!nullToAbsent || error != null) {
       map['error'] = Variable<String>(error);
     }
+    if (!nullToAbsent || framingLine != null) {
+      map['framing_line'] = Variable<String>(framingLine);
+    }
     return map;
   }
 
@@ -225,6 +260,9 @@ class BriefingRun extends DataClass implements Insertable<BriefingRun> {
       error: error == null && nullToAbsent
           ? const Value.absent()
           : Value(error),
+      framingLine: framingLine == null && nullToAbsent
+          ? const Value.absent()
+          : Value(framingLine),
     );
   }
 
@@ -242,6 +280,7 @@ class BriefingRun extends DataClass implements Insertable<BriefingRun> {
       ),
       promptVersion: serializer.fromJson<String?>(json['promptVersion']),
       error: serializer.fromJson<String?>(json['error']),
+      framingLine: serializer.fromJson<String?>(json['framingLine']),
     );
   }
   @override
@@ -256,6 +295,7 @@ class BriefingRun extends DataClass implements Insertable<BriefingRun> {
       ),
       'promptVersion': serializer.toJson<String?>(promptVersion),
       'error': serializer.toJson<String?>(error),
+      'framingLine': serializer.toJson<String?>(framingLine),
     };
   }
 
@@ -266,6 +306,7 @@ class BriefingRun extends DataClass implements Insertable<BriefingRun> {
     RankedBy? rankedBy,
     Value<String?> promptVersion = const Value.absent(),
     Value<String?> error = const Value.absent(),
+    Value<String?> framingLine = const Value.absent(),
   }) => BriefingRun(
     id: id ?? this.id,
     startedAt: startedAt ?? this.startedAt,
@@ -275,6 +316,7 @@ class BriefingRun extends DataClass implements Insertable<BriefingRun> {
         ? promptVersion.value
         : this.promptVersion,
     error: error.present ? error.value : this.error,
+    framingLine: framingLine.present ? framingLine.value : this.framingLine,
   );
   BriefingRun copyWithCompanion(BriefingRunsCompanion data) {
     return BriefingRun(
@@ -288,6 +330,9 @@ class BriefingRun extends DataClass implements Insertable<BriefingRun> {
           ? data.promptVersion.value
           : this.promptVersion,
       error: data.error.present ? data.error.value : this.error,
+      framingLine: data.framingLine.present
+          ? data.framingLine.value
+          : this.framingLine,
     );
   }
 
@@ -299,14 +344,22 @@ class BriefingRun extends DataClass implements Insertable<BriefingRun> {
           ..write('completedAt: $completedAt, ')
           ..write('rankedBy: $rankedBy, ')
           ..write('promptVersion: $promptVersion, ')
-          ..write('error: $error')
+          ..write('error: $error, ')
+          ..write('framingLine: $framingLine')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, startedAt, completedAt, rankedBy, promptVersion, error);
+  int get hashCode => Object.hash(
+    id,
+    startedAt,
+    completedAt,
+    rankedBy,
+    promptVersion,
+    error,
+    framingLine,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -316,7 +369,8 @@ class BriefingRun extends DataClass implements Insertable<BriefingRun> {
           other.completedAt == this.completedAt &&
           other.rankedBy == this.rankedBy &&
           other.promptVersion == this.promptVersion &&
-          other.error == this.error);
+          other.error == this.error &&
+          other.framingLine == this.framingLine);
 }
 
 class BriefingRunsCompanion extends UpdateCompanion<BriefingRun> {
@@ -326,6 +380,7 @@ class BriefingRunsCompanion extends UpdateCompanion<BriefingRun> {
   final Value<RankedBy> rankedBy;
   final Value<String?> promptVersion;
   final Value<String?> error;
+  final Value<String?> framingLine;
   const BriefingRunsCompanion({
     this.id = const Value.absent(),
     this.startedAt = const Value.absent(),
@@ -333,6 +388,7 @@ class BriefingRunsCompanion extends UpdateCompanion<BriefingRun> {
     this.rankedBy = const Value.absent(),
     this.promptVersion = const Value.absent(),
     this.error = const Value.absent(),
+    this.framingLine = const Value.absent(),
   });
   BriefingRunsCompanion.insert({
     this.id = const Value.absent(),
@@ -341,6 +397,7 @@ class BriefingRunsCompanion extends UpdateCompanion<BriefingRun> {
     required RankedBy rankedBy,
     this.promptVersion = const Value.absent(),
     this.error = const Value.absent(),
+    this.framingLine = const Value.absent(),
   }) : startedAt = Value(startedAt),
        completedAt = Value(completedAt),
        rankedBy = Value(rankedBy);
@@ -351,6 +408,7 @@ class BriefingRunsCompanion extends UpdateCompanion<BriefingRun> {
     Expression<String>? rankedBy,
     Expression<String>? promptVersion,
     Expression<String>? error,
+    Expression<String>? framingLine,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -359,6 +417,7 @@ class BriefingRunsCompanion extends UpdateCompanion<BriefingRun> {
       if (rankedBy != null) 'ranked_by': rankedBy,
       if (promptVersion != null) 'prompt_version': promptVersion,
       if (error != null) 'error': error,
+      if (framingLine != null) 'framing_line': framingLine,
     });
   }
 
@@ -369,6 +428,7 @@ class BriefingRunsCompanion extends UpdateCompanion<BriefingRun> {
     Value<RankedBy>? rankedBy,
     Value<String?>? promptVersion,
     Value<String?>? error,
+    Value<String?>? framingLine,
   }) {
     return BriefingRunsCompanion(
       id: id ?? this.id,
@@ -377,6 +437,7 @@ class BriefingRunsCompanion extends UpdateCompanion<BriefingRun> {
       rankedBy: rankedBy ?? this.rankedBy,
       promptVersion: promptVersion ?? this.promptVersion,
       error: error ?? this.error,
+      framingLine: framingLine ?? this.framingLine,
     );
   }
 
@@ -403,6 +464,9 @@ class BriefingRunsCompanion extends UpdateCompanion<BriefingRun> {
     if (error.present) {
       map['error'] = Variable<String>(error.value);
     }
+    if (framingLine.present) {
+      map['framing_line'] = Variable<String>(framingLine.value);
+    }
     return map;
   }
 
@@ -414,7 +478,8 @@ class BriefingRunsCompanion extends UpdateCompanion<BriefingRun> {
           ..write('completedAt: $completedAt, ')
           ..write('rankedBy: $rankedBy, ')
           ..write('promptVersion: $promptVersion, ')
-          ..write('error: $error')
+          ..write('error: $error, ')
+          ..write('framingLine: $framingLine')
           ..write(')'))
         .toString();
   }
@@ -1474,6 +1539,7 @@ typedef $$BriefingRunsTableCreateCompanionBuilder =
       required RankedBy rankedBy,
       Value<String?> promptVersion,
       Value<String?> error,
+      Value<String?> framingLine,
     });
 typedef $$BriefingRunsTableUpdateCompanionBuilder =
     BriefingRunsCompanion Function({
@@ -1483,6 +1549,7 @@ typedef $$BriefingRunsTableUpdateCompanionBuilder =
       Value<RankedBy> rankedBy,
       Value<String?> promptVersion,
       Value<String?> error,
+      Value<String?> framingLine,
     });
 
 final class $$BriefingRunsTableReferences
@@ -1563,6 +1630,11 @@ class $$BriefingRunsTableFilterComposer
 
   ColumnFilters<String> get error => $composableBuilder(
     column: $table.error,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get framingLine => $composableBuilder(
+    column: $table.framingLine,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1655,6 +1727,11 @@ class $$BriefingRunsTableOrderingComposer
     column: $table.error,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get framingLine => $composableBuilder(
+    column: $table.framingLine,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$BriefingRunsTableAnnotationComposer
@@ -1687,6 +1764,11 @@ class $$BriefingRunsTableAnnotationComposer
 
   GeneratedColumn<String> get error =>
       $composableBuilder(column: $table.error, builder: (column) => column);
+
+  GeneratedColumn<String> get framingLine => $composableBuilder(
+    column: $table.framingLine,
+    builder: (column) => column,
+  );
 
   Expression<T> snapshotItemsRefs<T extends Object>(
     Expression<T> Function($$SnapshotItemsTableAnnotationComposer a) f,
@@ -1773,6 +1855,7 @@ class $$BriefingRunsTableTableManager
                 Value<RankedBy> rankedBy = const Value.absent(),
                 Value<String?> promptVersion = const Value.absent(),
                 Value<String?> error = const Value.absent(),
+                Value<String?> framingLine = const Value.absent(),
               }) => BriefingRunsCompanion(
                 id: id,
                 startedAt: startedAt,
@@ -1780,6 +1863,7 @@ class $$BriefingRunsTableTableManager
                 rankedBy: rankedBy,
                 promptVersion: promptVersion,
                 error: error,
+                framingLine: framingLine,
               ),
           createCompanionCallback:
               ({
@@ -1789,6 +1873,7 @@ class $$BriefingRunsTableTableManager
                 required RankedBy rankedBy,
                 Value<String?> promptVersion = const Value.absent(),
                 Value<String?> error = const Value.absent(),
+                Value<String?> framingLine = const Value.absent(),
               }) => BriefingRunsCompanion.insert(
                 id: id,
                 startedAt: startedAt,
@@ -1796,6 +1881,7 @@ class $$BriefingRunsTableTableManager
                 rankedBy: rankedBy,
                 promptVersion: promptVersion,
                 error: error,
+                framingLine: framingLine,
               ),
           withReferenceMapper: (p0) => p0
               .map(

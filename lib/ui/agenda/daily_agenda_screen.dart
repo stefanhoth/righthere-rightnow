@@ -173,6 +173,7 @@ class _AgendaBody extends ConsumerWidget {
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       children: [
+        if (result.framingLine != null) _FramingLine(text: result.framingLine!),
         _LastRunBanner(result: result),
         if (launchRunId != null) const _OpenedFromNotificationBanner(),
         if (result.isPartial) _PartialDataBanner(message: result.error!),
@@ -187,6 +188,27 @@ class _AgendaBody extends ConsumerWidget {
         else
           for (final item in rankedItems) _AgendaTile(item: item),
       ],
+    );
+  }
+}
+
+class _FramingLine extends StatelessWidget {
+  const _FramingLine({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      key: const Key('framingLine'),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: Text(
+        text,
+        key: const Key('framingLineText'),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: Theme.of(context).textTheme.titleMedium,
+      ),
     );
   }
 }

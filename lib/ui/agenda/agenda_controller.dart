@@ -16,6 +16,7 @@ class DailyAgendaController extends _$DailyAgendaController {
     final result = await ref.read(briefingRunOrchestratorProvider).run();
     ref.invalidate(lastBriefingRunCompletedAtProvider);
     _rerankWithModel(result);
+    _generateFramingLine(result);
     return result;
   }
 
@@ -28,6 +29,7 @@ class DailyAgendaController extends _$DailyAgendaController {
     final result = state.value;
     if (result != null) {
       _rerankWithModel(result);
+      _generateFramingLine(result);
     }
   }
 
@@ -37,11 +39,41 @@ class DailyAgendaController extends _$DailyAgendaController {
   void _rerankWithModel(BriefingRunResult fallbackResult) {
     unawaited(
       ref.read(modelRerankerProvider).rerank(fallbackResult).then((reranked) {
-        if (reranked != null && ref.mounted) {
-          state = AsyncData(reranked);
+        if (reranked != null) {
+          _mergeIntoState(
+            (current) => current.copyWith(agenda: reranked.agenda),
+          );
         }
       }),
     );
+  }
+
+  /// Generated once per Briefing Run, alongside re-ranking -- never on
+  /// every widget rebuild, and never a second time for the same run once
+  /// this method has run for it.
+  void _generateFramingLine(BriefingRunResult fallbackResult) {
+    unawaited(
+      ref.read(framingLineGeneratorProvider).generate(fallbackResult).then((
+        line,
+      ) {
+        if (line != null) {
+          _mergeIntoState((current) => current.copyWith(framingLine: line));
+        }
+      }),
+    );
+  }
+
+  /// Applies [merge] to whatever the current state holds, not to the
+  /// fallback result each fire-and-forget task started from -- reranking
+  /// and framing-line generation complete independently, and each must
+  /// preserve whatever the other has already applied.
+  void _mergeIntoState(
+    BriefingRunResult Function(BriefingRunResult current) merge,
+  ) {
+    final current = state.value;
+    if (current != null && ref.mounted) {
+      state = AsyncData(merge(current));
+    }
   }
 }
 
