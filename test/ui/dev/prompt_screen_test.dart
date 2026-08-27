@@ -3,9 +3,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:righthere_rightnow/briefing/prompt.dart';
+import 'package:righthere_rightnow/briefing/providers.dart';
 import 'package:righthere_rightnow/data/db/app_database.dart';
 import 'package:righthere_rightnow/data/providers.dart';
+import 'package:righthere_rightnow/inference/inference_engine.dart';
 import 'package:righthere_rightnow/ui/dev/prompt_screen.dart';
+
+/// Resolves synchronously, unlike the real engine's platform-channel probe.
+class _FakeInferenceEngine implements InferenceEngine {
+  @override
+  Future<bool> isAvailable() async => false;
+
+  @override
+  Future<String> complete(String prompt, {Duration timeout = Duration.zero}) {
+    throw UnimplementedError();
+  }
+}
 
 Future<AppDatabase> _pumpPromptScreen(WidgetTester tester) async {
   final db = AppDatabase.forTesting(NativeDatabase.memory());
@@ -13,7 +26,10 @@ Future<AppDatabase> _pumpPromptScreen(WidgetTester tester) async {
 
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [appDatabaseProvider.overrideWithValue(db)],
+      overrides: [
+        appDatabaseProvider.overrideWithValue(db),
+        inferenceEngineProvider.overrideWithValue(_FakeInferenceEngine()),
+      ],
       child: const MaterialApp(home: PromptScreen()),
     ),
   );
@@ -64,5 +80,22 @@ void main() {
 
     expect(find.widgetWithText(TextField, defaultPromptText), findsOneWidget);
     expect(find.text('Active version: v3'), findsOneWidget);
+  });
+
+  testWidgets('replaying with no stored runs reports nothing to measure', (
+    tester,
+  ) async {
+    await _pumpPromptScreen(tester);
+
+    await tester.tap(find.byKey(const Key('runReplayButton')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('replaySummary')), findsOneWidget);
+    expect(find.text('Replayed 0 run(s).'), findsOneWidget);
+    expect(
+      find.text('No corrected runs to measure agreement against.'),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('nonDeterministicWarning')), findsNothing);
   });
 }

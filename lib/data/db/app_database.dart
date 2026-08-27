@@ -222,6 +222,29 @@ class AppDatabase extends _$AppDatabase {
       }
     });
   }
+
+  /// Every Briefing Run ever persisted -- the replay harness's universe
+  /// (Task 3.6).
+  Future<List<int>> allBriefingRunIds() async {
+    final rows = await (select(
+      briefingRuns,
+    )..orderBy([(r) => OrderingTerm.asc(r.id)])).get();
+    return rows.map((r) => r.id).toList();
+  }
+
+  /// [runId]'s stored promptVersion, or null if it was never model-ranked.
+  Future<String?> promptVersionForRun(int runId) async {
+    final row = await (select(
+      briefingRuns,
+    )..where((r) => r.id.equals(runId))).getSingleOrNull();
+    return row?.promptVersion;
+  }
+
+  /// Every Candidate Item [runId] considered, in no particular order --
+  /// callers sort by whichever rank column they need.
+  Future<List<SnapshotItem>> snapshotItemsForRun(int runId) {
+    return (select(snapshotItems)..where((s) => s.runId.equals(runId))).get();
+  }
 }
 
 // `driftDatabase(name:)` always opens the database via
