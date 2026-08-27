@@ -13,6 +13,7 @@ import 'package:righthere_rightnow/domain/agenda_item.dart';
 import 'package:righthere_rightnow/domain/priority.dart';
 import 'package:righthere_rightnow/domain/ranked_agenda.dart';
 import 'package:righthere_rightnow/domain/response_status.dart';
+import 'package:righthere_rightnow/inference/inference_engine.dart';
 import 'package:righthere_rightnow/ui/agenda/agenda_controller.dart';
 import 'package:righthere_rightnow/ui/agenda/daily_agenda_screen.dart';
 
@@ -21,6 +22,19 @@ class _MockCalendarReader extends Mock implements CalendarReader {}
 class _MockTodoistClient extends Mock implements TodoistClient {}
 
 class _MockTodoistTokenStorage extends Mock implements TodoistTokenStorage {}
+
+/// Resolves synchronously, unlike the real engine's platform-channel probe --
+/// that probe's own internal timeout leaves a pending Timer past the end of
+/// a widget test that doesn't know to wait for the fire-and-forget re-rank.
+class _FakeUnavailableEngine implements InferenceEngine {
+  @override
+  Future<bool> isAvailable() async => false;
+
+  @override
+  Future<String> complete(String prompt, {Duration timeout = Duration.zero}) {
+    throw UnimplementedError();
+  }
+}
 
 class _FakeOrchestrator extends BriefingRunOrchestrator {
   _FakeOrchestrator(this._result)
@@ -80,6 +94,7 @@ Future<void> _pumpAgenda(
         lastBriefingRunCompletedAtProvider.overrideWith(
           (ref) async => lastBriefingRunCompletedAt,
         ),
+        inferenceEngineProvider.overrideWithValue(_FakeUnavailableEngine()),
       ],
       child: const MaterialApp(home: DailyAgendaScreen()),
     ),
@@ -98,6 +113,7 @@ void main() {
     );
     final result = BriefingRunResult(
       runId: 1,
+      candidateItems: const [],
       agenda: RankedAgenda(
         items: [commitment, task],
         rankedBy: RankedBy.fallback,
@@ -119,6 +135,7 @@ void main() {
   ) async {
     final result = BriefingRunResult(
       runId: 1,
+      candidateItems: const [],
       agenda: const RankedAgenda(items: [], rankedBy: RankedBy.fallback),
       allDayCommitments: const [],
       startedAt: DateTime(2026, 8, 26, 9),
@@ -135,6 +152,7 @@ void main() {
   ) async {
     final result = BriefingRunResult(
       runId: 1,
+      candidateItems: const [],
       agenda: const RankedAgenda(items: [], rankedBy: RankedBy.fallback),
       allDayCommitments: const [],
       startedAt: DateTime(2026, 8, 26, 9),
@@ -158,6 +176,7 @@ void main() {
     final commitment = _commitment(id: 'cal:standup');
     final result = BriefingRunResult(
       runId: 1,
+      candidateItems: const [],
       agenda: RankedAgenda(items: [commitment], rankedBy: RankedBy.fallback),
       allDayCommitments: const [],
       startedAt: DateTime(2026, 8, 26, 9),
@@ -180,6 +199,7 @@ void main() {
     );
     final result = BriefingRunResult(
       runId: 1,
+      candidateItems: const [],
       agenda: RankedAgenda(items: [commitment], rankedBy: RankedBy.fallback),
       allDayCommitments: const [],
       startedAt: DateTime(2026, 8, 26, 9),
@@ -196,6 +216,7 @@ void main() {
   ) async {
     final result = BriefingRunResult(
       runId: 1,
+      candidateItems: const [],
       agenda: const RankedAgenda(items: [], rankedBy: RankedBy.fallback),
       allDayCommitments: const [],
       startedAt: DateTime(2026, 8, 26, 9),
@@ -215,6 +236,7 @@ void main() {
   ) async {
     final result = BriefingRunResult(
       runId: 1,
+      candidateItems: const [],
       agenda: const RankedAgenda(items: [], rankedBy: RankedBy.fallback),
       allDayCommitments: const [],
       startedAt: DateTime(2026, 8, 26, 9),
@@ -231,6 +253,7 @@ void main() {
   ) async {
     final result = BriefingRunResult(
       runId: 1,
+      candidateItems: const [],
       agenda: const RankedAgenda(items: [], rankedBy: RankedBy.fallback),
       allDayCommitments: const [],
       startedAt: DateTime(2026, 8, 26, 9),
@@ -253,6 +276,7 @@ void main() {
   ) async {
     final result = BriefingRunResult(
       runId: 1,
+      candidateItems: const [],
       agenda: const RankedAgenda(items: [], rankedBy: RankedBy.fallback),
       allDayCommitments: const [],
       startedAt: DateTime(2026, 8, 26, 9),
@@ -274,6 +298,7 @@ void main() {
     final offsite = _commitment(id: 'cal:offsite', title: 'Company offsite');
     final result = BriefingRunResult(
       runId: 1,
+      candidateItems: const [],
       agenda: const RankedAgenda(items: [], rankedBy: RankedBy.fallback),
       allDayCommitments: [offsite],
       startedAt: DateTime(2026, 8, 26, 9),

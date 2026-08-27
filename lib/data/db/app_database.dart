@@ -129,6 +129,32 @@ class AppDatabase extends _$AppDatabase {
     return into(prompts)
         .insert(PromptsCompanion.insert(body: text, updatedAt: DateTime.now()));
   }
+
+  /// Records that a Briefing Run's Daily Agenda was re-ranked after it was
+  /// first persisted -- the model re-ranks at app-open, after the run
+  /// itself already wrote its fallback order (ADR-0006). [producedOrder] is
+  /// every item id in [runId]'s Candidate Set, in its new order.
+  Future<void> updateRunRanking({
+    required int runId,
+    required RankedBy rankedBy,
+    required String? promptVersion,
+    required List<String> producedOrder,
+  }) {
+    return transaction(() async {
+      await (update(briefingRuns)..where((r) => r.id.equals(runId))).write(
+        BriefingRunsCompanion(
+          rankedBy: Value(rankedBy),
+          promptVersion: Value(promptVersion),
+        ),
+      );
+
+      for (final (rank, itemId) in producedOrder.indexed) {
+        await (update(snapshotItems)
+              ..where((s) => s.runId.equals(runId) & s.itemId.equals(itemId)))
+            .write(SnapshotItemsCompanion(producedRank: Value(rank)));
+      }
+    });
+  }
 }
 
 // `driftDatabase(name:)` always opens the database via
