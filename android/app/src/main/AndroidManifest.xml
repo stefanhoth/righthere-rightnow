@@ -1,7 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Read-only agenda: no WRITE_CALENDAR, this app never creates or edits
-         events. -->
+    <!-- This app only reads the calendar and never calls a write API. But
+         device_calendar_plus's non-writeOnly permission request refuses to
+         run unless BOTH CALENDAR permissions are declared
+         (PermissionService.checkPermissionsDeclared), failing with
+         PERMISSIONS_NOT_DECLARED before it checks what the OS granted. There
+         is no read-only mode. WRITE_CALENDAR is declared but unused. -->
     <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <uses-permission android:name="android.permission.WRITE_CALENDAR" />
 
     <!-- Sideloaded only, see docs/adr/0002. USE_EXACT_ALARM is protection
          level "normal" (granted at install, no prompt); SCHEDULE_EXACT_ALARM

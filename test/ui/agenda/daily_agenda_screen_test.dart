@@ -134,6 +134,29 @@ void main() {
     expect(find.byKey(const Key('lastRunTime')), findsOneWidget);
   });
 
+  testWidgets('a Commitment subtitle names the day it falls on', (
+    tester,
+  ) async {
+    final tomorrow = DateTime.now().add(const Duration(days: 1));
+    final commitment = _commitment(
+      id: 'cal:tomorrow',
+      title: 'Kickoff',
+      start: DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 8),
+    );
+    final result = BriefingRunResult(
+      runId: 1,
+      candidateItems: const [],
+      agenda: RankedAgenda(items: [commitment], rankedBy: RankedBy.fallback),
+      allDayCommitments: const [],
+      startedAt: DateTime(2026, 8, 26, 9),
+      completedAt: DateTime(2026, 8, 26, 9, 0, 5),
+    );
+
+    await _pumpAgenda(tester, result);
+
+    expect(find.textContaining('Tomorrow · '), findsOneWidget);
+  });
+
   testWidgets('shows the empty state when there is nothing to do', (
     tester,
   ) async {

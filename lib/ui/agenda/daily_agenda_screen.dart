@@ -7,6 +7,7 @@ import 'package:righthere_rightnow/briefing/ranking_explanation.dart';
 import 'package:righthere_rightnow/briefing/staleness.dart';
 import 'package:righthere_rightnow/domain/agenda_item.dart';
 import 'package:righthere_rightnow/ui/agenda/agenda_controller.dart';
+import 'package:righthere_rightnow/ui/agenda/day_label.dart';
 import 'package:righthere_rightnow/ui/settings/settings_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -395,6 +396,7 @@ class _AgendaTile extends StatelessWidget {
         leading: const Icon(Icons.event),
         title: Text(agendaItem.title),
         subtitle: Text(
+          '${dayLabel(agendaItem.start, DateTime.now())} · '
           '${DateFormat.jm().format(agendaItem.start)} - '
           '${DateFormat.jm().format(agendaItem.end)} · $reason',
         ),
