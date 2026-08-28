@@ -178,7 +178,7 @@ class ReplayHarness {
     required List<CandidateItem> candidateItems,
     required List<AgendaItem> fallbackOrderItems,
   }) async {
-    if (!await engine.isAvailable()) {
+    if (await engine.availability() != EngineAvailability.ready) {
       return null;
     }
 

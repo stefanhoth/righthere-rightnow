@@ -12,7 +12,8 @@ import 'package:righthere_rightnow/ui/dev/prompt_screen.dart';
 /// Resolves synchronously, unlike the real engine's platform-channel probe.
 class _FakeInferenceEngine implements InferenceEngine {
   @override
-  Future<bool> isAvailable() async => false;
+  Future<EngineAvailability> availability() async =>
+      EngineAvailability.unsupported;
 
   @override
   Future<String> complete(String prompt, {Duration timeout = Duration.zero}) {
