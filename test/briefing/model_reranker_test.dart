@@ -6,6 +6,7 @@ import 'package:flutter_secure_storage_platform_interface/flutter_secure_storage
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:righthere_rightnow/briefing/briefing_run_orchestrator.dart';
+import 'package:righthere_rightnow/briefing/model_ranking.dart';
 import 'package:righthere_rightnow/briefing/model_reranker.dart';
 import 'package:righthere_rightnow/data/calendar/calendar_reader.dart';
 import 'package:righthere_rightnow/data/db/app_database.dart';
@@ -230,6 +231,32 @@ void main() {
       expect(storedRun.rankedBy, RankedBy.fallback);
     },
   );
+
+  test('the ranking answer is given room for every id', () async {
+    // ML Kit defaults to 256 output tokens when no bound is passed, which
+    // truncates a 25-item permutation mid-array. The bound has to scale with
+    // the number of items, not be a constant.
+    expect(rankingMaxOutputTokens(25), greaterThan(256));
+    expect(rankingMaxOutputTokens(25), greaterThan(rankingMaxOutputTokens(5)));
+  });
+
+  test('an unusable answer is kept, so it can be diagnosed', () async {
+    final reranker = ModelReranker(
+      engine: _FakeInferenceEngine(response: '["td:1", "td:2'),
+      database: database,
+    );
+
+    final result = await reranker.rerank(fallbackResult);
+
+    expect(
+      result,
+      isA<InferenceFailed<BriefingRunResult>>().having(
+        (outcome) => outcome.detail,
+        'detail',
+        '["td:1", "td:2',
+      ),
+    );
+  });
 }
 
 Matcher _skippedBecause(EngineAvailability availability) =>

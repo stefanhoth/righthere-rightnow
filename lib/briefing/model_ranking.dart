@@ -78,3 +78,16 @@ List<String>? _tryParseIds(String response) {
   }
   return decoded.cast<String>();
 }
+
+/// How much room the model needs to answer with a permutation of
+/// [itemCount] Agenda Item ids.
+///
+/// ML Kit applies its own default when no bound is given, and on the Pixel
+/// that default is 256 tokens. A 25-item answer needs more than that, so the
+/// array was being cut off mid-id and the JSON never parsed -- which the app
+/// then reported, correctly but uselessly, as "the model's answer was
+/// unusable".
+///
+/// Ids run to roughly sixteen tokens (`cal:12345:1787900000000`), plus quotes
+/// and commas, plus a little slack for a model that likes a trailing newline.
+int rankingMaxOutputTokens(int itemCount) => itemCount * 20 + 32;

@@ -78,7 +78,8 @@ class DailyAgendaController extends _$DailyAgendaController {
       InferenceSucceeded<T>() => null,
       InferenceSkipped<T>(:final availability) =>
         'skipped: engine ${availability.name}',
-      InferenceFailed<T>(:final failure) => 'failed: ${failure.name}',
+      InferenceFailed<T>(:final failure, :final detail) =>
+        'failed: ${failure.name}${detail == null ? '' : ' <<$detail>>'}',
     };
     if (detail != null) {
       developer.log('$what $detail', name: 'DailyAgendaController');

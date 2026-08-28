@@ -42,7 +42,11 @@ class ModelReranker {
 
     final String response;
     try {
-      response = await engine.complete(promptText, timeout: timeout);
+      response = await engine.complete(
+        promptText,
+        timeout: timeout,
+        maxOutputTokens: rankingMaxOutputTokens(result.candidateItems.length),
+      );
     } on TimeoutException {
       return const InferenceFailed(InferenceFailure.timedOut);
     } on Exception {
@@ -54,7 +58,9 @@ class ModelReranker {
       fallbackRankedItems: result.agenda.items,
     );
     if (reordered == null) {
-      return const InferenceFailed(InferenceFailure.unusableOutput);
+      // Keep what came back. Without it, "unusable" is a dead end: there is
+      // no way to tell a truncated answer from a malformed one.
+      return InferenceFailed(InferenceFailure.unusableOutput, detail: response);
     }
 
     final promptVersion = 'v${prompt.version}';
