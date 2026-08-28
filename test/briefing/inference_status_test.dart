@@ -50,4 +50,16 @@ void main() {
 
     expect(status.summary, 'Ranking your agenda…');
   });
+
+  test('the same failure is not reported twice', () {
+    // Both jobs fail the same way when the engine itself is the problem.
+    // That is one fact about the engine, not two.
+    final status = const InferenceStatus()
+        .starting(InferenceWork.ranking)
+        .starting(InferenceWork.framing)
+        .finished(InferenceWork.ranking, 'The model failed to run')
+        .finished(InferenceWork.framing, 'The model failed to run');
+
+    expect(status.summary, 'The model failed to run');
+  });
 }

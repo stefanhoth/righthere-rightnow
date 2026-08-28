@@ -37,9 +37,14 @@ class InferenceStatus {
     if (notes.isEmpty) {
       return null;
     }
+    // Deduplicated: when ranking and framing fail the same way, the cause is
+    // one fact about the engine, not two. "The model failed to run · The
+    // model failed to run" tells the reader nothing twice.
+    final seen = <String>{};
     final ordered = InferenceWork.values
         .where(notes.containsKey)
-        .map((work) => notes[work]!);
+        .map((work) => notes[work]!)
+        .where(seen.add);
     return ordered.join(' · ');
   }
 
