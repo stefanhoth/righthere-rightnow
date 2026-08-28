@@ -49,8 +49,13 @@ class ModelReranker {
       );
     } on TimeoutException {
       return const InferenceFailed(InferenceFailure.timedOut);
-    } on Exception {
-      return const InferenceFailed(InferenceFailure.engineThrew);
+    } on Exception catch (error) {
+      // Keep the message. "The model failed to run" without it is the same
+      // dead end the discarded response was.
+      return InferenceFailed(
+        InferenceFailure.engineThrew,
+        detail: error.toString(),
+      );
     }
 
     final reordered = validateModelRanking(
