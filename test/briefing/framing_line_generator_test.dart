@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage_platform_interface/flutter_secure_storage
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:righthere_rightnow/briefing/briefing_run_orchestrator.dart';
+import 'package:righthere_rightnow/briefing/framing_line.dart';
 import 'package:righthere_rightnow/briefing/framing_line_generator.dart';
 import 'package:righthere_rightnow/data/calendar/calendar_reader.dart';
 import 'package:righthere_rightnow/data/db/app_database.dart';
@@ -24,6 +25,8 @@ class _FakeInferenceEngine implements InferenceEngine {
   final String? response;
   final Exception? error;
 
+  int? lastMaxOutputTokens;
+
   @override
   Future<EngineAvailability> availability() async =>
       available ? EngineAvailability.ready : EngineAvailability.notReady;
@@ -32,7 +35,9 @@ class _FakeInferenceEngine implements InferenceEngine {
   Future<String> complete(
     String prompt, {
     Duration timeout = Duration.zero,
+    int? maxOutputTokens,
   }) async {
+    lastMaxOutputTokens = maxOutputTokens;
     if (error != null) {
       throw error!;
     }
@@ -197,6 +202,18 @@ void main() {
       database.briefingRuns,
     )..where((r) => r.id.equals(fallbackResult.runId))).getSingle();
     expect(storedRun.framingLine, isNull);
+  });
+
+  test('generation is bounded, so the line fits the screen', () async {
+    // Unbounded, Nano ran to its own 256-token default and took 16.4s on the
+    // Pixel for a sentence the screen then showed a third of. The cap
+    // belongs on generation, not on the widget.
+    final engine = _FakeInferenceEngine(response: 'A quiet day.');
+    final generator = FramingLineGenerator(engine: engine, database: database);
+
+    await generator.generate(fallbackResult);
+
+    expect(engine.lastMaxOutputTokens, framingLineMaxOutputTokens);
   });
 }
 

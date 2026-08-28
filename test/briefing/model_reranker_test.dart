@@ -6,6 +6,7 @@ import 'package:flutter_secure_storage_platform_interface/flutter_secure_storage
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:righthere_rightnow/briefing/briefing_run_orchestrator.dart';
+import 'package:righthere_rightnow/briefing/model_ranking.dart';
 import 'package:righthere_rightnow/briefing/model_reranker.dart';
 import 'package:righthere_rightnow/data/calendar/calendar_reader.dart';
 import 'package:righthere_rightnow/data/db/app_database.dart';
@@ -37,6 +38,7 @@ class _FakeInferenceEngine implements InferenceEngine {
   Future<String> complete(
     String prompt, {
     Duration timeout = Duration.zero,
+    int? maxOutputTokens,
   }) async {
     if (error != null) {
       throw error!;
@@ -150,8 +152,11 @@ void main() {
 
   test('a valid model ranking is applied and persisted', () async {
     final ids = fallbackResult.agenda.items.map((i) => i.id).toList().reversed;
+    final reversedNumbers = [
+      for (var n = fallbackResult.agenda.items.length; n >= 1; n--) n,
+    ];
     final reranker = ModelReranker(
-      engine: _FakeInferenceEngine(response: jsonEncode(ids.toList())),
+      engine: _FakeInferenceEngine(response: jsonEncode(reversedNumbers)),
       database: database,
     );
 
@@ -229,6 +234,33 @@ void main() {
       expect(storedRun.rankedBy, RankedBy.fallback);
     },
   );
+
+  test("the ranking answer fits inside ML Kit's hard ceiling", () async {
+    // "maxOutputTokens must be between 1 and 256" -- asking for more throws,
+    // so the bound is a clamp, not just a budget. Item numbers are what make
+    // 25 items fit inside 256 at all; 25 ids would not.
+    expect(rankingMaxOutputTokens(25), lessThanOrEqualTo(256));
+    expect(rankingMaxOutputTokens(25), greaterThan(rankingMaxOutputTokens(5)));
+    expect(rankingMaxOutputTokens(500), 256);
+  });
+
+  test('an unusable answer is kept, so it can be diagnosed', () async {
+    final reranker = ModelReranker(
+      engine: _FakeInferenceEngine(response: '[1, 2'),
+      database: database,
+    );
+
+    final result = await reranker.rerank(fallbackResult);
+
+    expect(
+      result,
+      isA<InferenceFailed<BriefingRunResult>>().having(
+        (outcome) => outcome.detail,
+        'detail',
+        '[1, 2',
+      ),
+    );
+  });
 }
 
 Matcher _skippedBecause(EngineAvailability availability) =>

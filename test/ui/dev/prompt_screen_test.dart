@@ -16,7 +16,11 @@ class _FakeInferenceEngine implements InferenceEngine {
       EngineAvailability.unsupported;
 
   @override
-  Future<String> complete(String prompt, {Duration timeout = Duration.zero}) {
+  Future<String> complete(
+    String prompt, {
+    Duration timeout = Duration.zero,
+    int? maxOutputTokens,
+  }) {
     throw UnimplementedError();
   }
 }

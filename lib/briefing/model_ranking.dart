@@ -10,8 +10,18 @@ String buildRankingPrompt({
   required String promptTemplate,
   required List<CandidateItem> candidateItems,
 }) {
-  final json = jsonEncode(candidateItems.map(candidateItemToJson).toList());
-  return '$promptTemplate\n\nAgenda Items (JSON):\n$json';
+  // Each item carries a short number, and the model answers with those
+  // numbers rather than ids. ML Kit's GenAI Prompt API rejects any
+  // maxOutputTokens above 256 outright ("maxOutputTokens must be between 1
+  // and 256"), and 25 ids like "cal:12345:1787900000000" do not fit in 256
+  // tokens. Numbers do, with room to spare.
+  final numbered = [
+    for (final (index, candidate) in candidateItems.indexed)
+      {'n': index + 1, ...candidateItemToJson(candidate)},
+  ];
+  return '$promptTemplate\n\n'
+      'Agenda Items (JSON):\n${jsonEncode(numbered)}\n\n'
+      '$_answerContract';
 }
 
 /// Parses and validates the model's [response] against [fallbackRankedItems]
@@ -26,38 +36,44 @@ List<AgendaItem>? validateModelRanking({
   required String response,
   required List<AgendaItem> fallbackRankedItems,
 }) {
-  final parsedIds = _tryParseIds(response);
-  if (parsedIds == null) {
+  final parsed = _tryParseNumbers(response);
+  if (parsed == null) {
     return null;
   }
 
-  final byId = {for (final item in fallbackRankedItems) item.id: item};
-  final recognisedIds = <String>[];
-  for (final id in parsedIds) {
-    if (byId.containsKey(id) && !recognisedIds.contains(id)) {
-      recognisedIds.add(id);
+  // A number is only meaningful if it names one of the items we supplied.
+  // The model still authors nothing -- this is the same permutation
+  // contract as ADR-0003, counted rather than spelled out.
+  final recognised = <int>[];
+  for (final n in parsed) {
+    final index = n - 1;
+    if (index >= 0 &&
+        index < fallbackRankedItems.length &&
+        !recognised.contains(index)) {
+      recognised.add(index);
     }
   }
 
-  if (recognisedIds.length * 2 < fallbackRankedItems.length) {
+  if (recognised.length * 2 < fallbackRankedItems.length) {
     return null;
   }
 
-  final recognisedSet = recognisedIds.toSet();
-  final missingIds = fallbackRankedItems
-      .map((item) => item.id)
-      .where((id) => !recognisedSet.contains(id));
+  final seen = recognised.toSet();
+  final missing = [
+    for (var i = 0; i < fallbackRankedItems.length; i++)
+      if (!seen.contains(i)) i,
+  ];
 
   return [
-    ...recognisedIds.map((id) => byId[id]!),
-    ...missingIds.map((id) => byId[id]!),
+    ...recognised.map((index) => fallbackRankedItems[index]),
+    ...missing.map((index) => fallbackRankedItems[index]),
   ];
 }
 
 /// Accepts a bare JSON array, or one wrapped in a markdown code fence --
 /// models routinely add the latter even when told not to. Returns null for
-/// anything else, including valid JSON that isn't a list of strings.
-List<String>? _tryParseIds(String response) {
+/// anything else, including valid JSON that isn't a list of whole numbers.
+List<int>? _tryParseNumbers(String response) {
   final trimmed = response.trim();
   final fenced = RegExp(r'^```(?:json)?\s*([\s\S]*?)\s*```$')
       .firstMatch(trimmed);
@@ -73,8 +89,35 @@ List<String>? _tryParseIds(String response) {
   if (decoded is! List) {
     return null;
   }
-  if (decoded.any((element) => element is! String)) {
+  if (decoded.any((element) => element is! int)) {
     return null;
   }
-  return decoded.cast<String>();
+  return decoded.cast<int>();
+}
+
+/// The output contract, appended by code rather than stored with the
+/// editable prompt. It has to match [validateModelRanking] exactly, and a
+/// prompt seeded into the database months ago cannot know that.
+const _answerContract =
+    'Respond with a JSON array of the item numbers "n", in that order, and '
+    'nothing else. Example: [3,1,2]. Use every number exactly once. Do not '
+    'invent a number that was not given, and write no other text.';
+
+/// How much room the model needs to answer with a permutation of
+/// [itemCount] Agenda Item ids.
+///
+/// ML Kit applies its own default when no bound is given, and on the Pixel
+/// that default is 256 tokens. A 25-item answer needs more than that, so the
+/// array was being cut off mid-id and the JSON never parsed -- which the app
+/// then reported, correctly but uselessly, as "the model's answer was
+/// unusable".
+///
+/// Ids run to roughly sixteen tokens (`cal:12345:1787900000000`), plus quotes
+/// and commas, plus a little slack for a model that likes a trailing newline.
+/// ML Kit rejects anything above 256 outright, so this is a clamp, not just
+/// a budget. Numbers cost roughly three tokens each with their comma.
+int rankingMaxOutputTokens(int itemCount) {
+  const mlKitCeiling = 256;
+  final needed = itemCount * 4 + 16;
+  return needed < mlKitCeiling ? needed : mlKitCeiling;
 }

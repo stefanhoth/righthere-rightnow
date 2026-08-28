@@ -34,5 +34,14 @@ abstract class InferenceEngine {
   /// [timeout]. Callers decide what "unavailable" or "too slow" means for
   /// them -- this interface only reports outcomes, it never falls back on
   /// its own.
-  Future<String> complete(String prompt, {Duration timeout});
+  ///
+  /// [maxOutputTokens] bounds the answer. It is not a formatting preference:
+  /// an unbounded Nano ran to its own 256-token default and spent 16.4s
+  /// doing it, for a sentence that needed about twenty. Callers that know
+  /// how long a usable answer is should say so.
+  Future<String> complete(
+    String prompt, {
+    Duration timeout,
+    int? maxOutputTokens,
+  });
 }

@@ -259,7 +259,12 @@ class _FramingLine extends StatelessWidget {
       child: Text(
         text,
         key: const Key('framingLineText'),
-        maxLines: 1,
+        // Three lines, not one. Task 3.4 called for a hard cap and truncation
+        // over wrapping, and on the device that showed about a third of the
+        // sentence -- useless. The cap now lives where it belongs, on
+        // generation (framingLineMaxOutputTokens), so the screen can afford
+        // to show what it asked for.
+        maxLines: 3,
         overflow: TextOverflow.ellipsis,
         style: Theme.of(context).textTheme.titleMedium,
       ),

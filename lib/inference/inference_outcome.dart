@@ -58,7 +58,12 @@ final class InferenceSkipped<T> extends InferenceOutcome<T> {
 /// Inference was attempted and did not produce anything usable.
 @immutable
 final class InferenceFailed<T> extends InferenceOutcome<T> {
-  const InferenceFailed(this.failure);
+  const InferenceFailed(this.failure, {this.detail});
 
   final InferenceFailure failure;
+
+  /// What the engine actually returned, when there was a returned thing worth
+  /// keeping. The only way to tell a truncated answer from a malformed one
+  /// after the fact.
+  final String? detail;
 }
