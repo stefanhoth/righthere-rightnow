@@ -13,7 +13,7 @@ class FramingLineGenerator {
   FramingLineGenerator({
     required this.engine,
     required this.database,
-    this.timeout = const Duration(seconds: 10),
+    this.timeout = const Duration(seconds: 30),
   });
 
   final InferenceEngine engine;
