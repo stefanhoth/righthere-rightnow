@@ -19,7 +19,9 @@ String buildRankingPrompt({
     for (final (index, candidate) in candidateItems.indexed)
       {'n': index + 1, ...candidateItemToJson(candidate)},
   ];
-  return '$promptTemplate\n\nAgenda Items (JSON):\n${jsonEncode(numbered)}';
+  return '$promptTemplate\n\n'
+      'Agenda Items (JSON):\n${jsonEncode(numbered)}\n\n'
+      '$_answerContract';
 }
 
 /// Parses and validates the model's [response] against [fallbackRankedItems]
@@ -92,6 +94,14 @@ List<int>? _tryParseNumbers(String response) {
   }
   return decoded.cast<int>();
 }
+
+/// The output contract, appended by code rather than stored with the
+/// editable prompt. It has to match [validateModelRanking] exactly, and a
+/// prompt seeded into the database months ago cannot know that.
+const _answerContract =
+    'Respond with a JSON array of the item numbers "n", in that order, and '
+    'nothing else. Example: [3,1,2]. Use every number exactly once. Do not '
+    'invent a number that was not given, and write no other text.';
 
 /// How much room the model needs to answer with a permutation of
 /// [itemCount] Agenda Item ids.

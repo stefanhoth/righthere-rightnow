@@ -15,6 +15,12 @@ class ActivePrompt {
 /// Shipped starting point for the ranking prompt -- see ADR-0003. Stored as
 /// versioned data from the first run, editable from the dev screen without a
 /// rebuild; this constant only matters again if someone resets to it.
+///
+/// Deliberately says nothing about the *format* of the answer. That is a
+/// contract with the validator, not a tuning knob, and it is appended by
+/// `buildRankingPrompt` so the two can never drift apart. A stored prompt
+/// asking for one shape while the parser expects another is simply broken,
+/// and there is no edit a user could make to fix it.
 const defaultPromptText = '''
 You are ranking a person's Daily Agenda: a list of Agenda Items competing
 for their attention today. Each item has a number "n" and the features a
@@ -22,8 +28,4 @@ deterministic ranker would use -- due dates, overdue days, proximity,
 priority, and similar.
 
 Decide the order these items deserve attention today, most important first.
-
-Respond with a JSON array of the item numbers, in that order, and nothing
-else. Example: [3,1,2]. Use every number exactly once. Do not invent a
-number that was not given, and write no other text.
 ''';

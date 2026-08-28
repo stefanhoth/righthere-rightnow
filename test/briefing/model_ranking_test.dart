@@ -123,6 +123,10 @@ void main() {
 
       expect(prompt, startsWith('Rank these.'));
       expect(prompt, contains('[]'));
+      // The answer contract comes from code, never from the stored prompt:
+      // a prompt seeded before the format changed would otherwise ask for
+      // the wrong shape forever.
+      expect(prompt, contains('JSON array of the item numbers'));
     });
   });
 
