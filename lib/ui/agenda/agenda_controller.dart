@@ -145,6 +145,43 @@ class DailyAgendaController extends _$DailyAgendaController {
         );
   }
 
+  /// The user says this Agenda Item needs nothing further.
+  ///
+  /// Only offered for past Commitments: they are on the list because a
+  /// finished meeting may have created work, and "it did not" is a real
+  /// answer. Removes it from the screen at once and remembers it, so the
+  /// next Briefing Run does not put it back.
+  ///
+  /// Never touches the calendar -- this is the app's own note, not an edit
+  /// to the event.
+  Future<void> dismiss(String itemId) async {
+    final current = state.value;
+    if (current == null) {
+      return;
+    }
+
+    state = AsyncData(
+      current.copyWith(
+        agenda: RankedAgenda(
+          items: current.agenda.items
+              .where((item) => item.id != itemId)
+              .toList(),
+          rankedBy: current.agenda.rankedBy,
+          promptVersion: current.agenda.promptVersion,
+        ),
+      ),
+    );
+
+    await ref.read(appDatabaseProvider).dismissItem(itemId, at: DateTime.now());
+  }
+
+  /// Puts a dismissed Agenda Item back. Backs the undo action on the
+  /// confirmation, so a mis-swipe costs one tap rather than a day.
+  Future<void> undismiss(String itemId) async {
+    await ref.read(appDatabaseProvider).undismissItem(itemId);
+    await refresh();
+  }
+
   /// A coarse thumbs up/down for this run, for a day not worth reordering.
   Future<void> rate(int rating) async {
     final current = state.value;

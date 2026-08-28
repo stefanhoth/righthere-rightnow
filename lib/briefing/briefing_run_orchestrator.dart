@@ -111,10 +111,19 @@ class BriefingRunOrchestrator {
     final commitmentsOutcome = await commitmentsFuture;
     final tasksOutcome = await tasksFuture;
 
+    // A dismissed Agenda Item is gone before ranking, not hidden after it:
+    // it must not occupy one of the 25 candidate slots, reach the model, or
+    // appear in the snapshot as something that competed.
+    final dismissed = await database.dismissedItemIds();
+
     final assembler = CandidateSetAssembler(clock: clock, rank: fallbackScore);
     final candidateSet = assembler.assemble(
-      fetchedCommitments: commitmentsOutcome.items,
-      fetchedTasks: tasksOutcome.items,
+      fetchedCommitments: commitmentsOutcome.items
+          .where((commitment) => !dismissed.contains(commitment.id))
+          .toList(),
+      fetchedTasks: tasksOutcome.items
+          .where((task) => !dismissed.contains(task.id))
+          .toList(),
     );
 
     final rankedItems = rankFallback(

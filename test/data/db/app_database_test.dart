@@ -308,4 +308,16 @@ void main() {
     expect(ratings, hasLength(1));
     expect(ratings.single.rating, -1);
   });
+
+  test('dismissals survive and are idempotent', () async {
+    await db.dismissItem('cal:1', at: DateTime(2026, 8, 28, 9));
+    await db.dismissItem('cal:1', at: DateTime(2026, 8, 28, 10));
+    await db.dismissItem('cal:2', at: DateTime(2026, 8, 28, 9));
+
+    expect(await db.dismissedItemIds(), {'cal:1', 'cal:2'});
+
+    await db.undismissItem('cal:1');
+
+    expect(await db.dismissedItemIds(), {'cal:2'});
+  });
 }

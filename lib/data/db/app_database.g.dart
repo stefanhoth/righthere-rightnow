@@ -1512,6 +1512,227 @@ class PromptsCompanion extends UpdateCompanion<Prompt> {
   }
 }
 
+class $DismissedItemsTable extends DismissedItems
+    with TableInfo<$DismissedItemsTable, DismissedItem> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DismissedItemsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _itemIdMeta = const VerificationMeta('itemId');
+  @override
+  late final GeneratedColumn<String> itemId = GeneratedColumn<String>(
+    'item_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dismissedAtMeta = const VerificationMeta(
+    'dismissedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> dismissedAt = GeneratedColumn<DateTime>(
+    'dismissed_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [itemId, dismissedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'dismissed_items';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DismissedItem> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('item_id')) {
+      context.handle(
+        _itemIdMeta,
+        itemId.isAcceptableOrUnknown(data['item_id']!, _itemIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_itemIdMeta);
+    }
+    if (data.containsKey('dismissed_at')) {
+      context.handle(
+        _dismissedAtMeta,
+        dismissedAt.isAcceptableOrUnknown(
+          data['dismissed_at']!,
+          _dismissedAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_dismissedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {itemId};
+  @override
+  DismissedItem map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DismissedItem(
+      itemId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}item_id'],
+      )!,
+      dismissedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}dismissed_at'],
+      )!,
+    );
+  }
+
+  @override
+  $DismissedItemsTable createAlias(String alias) {
+    return $DismissedItemsTable(attachedDatabase, alias);
+  }
+}
+
+class DismissedItem extends DataClass implements Insertable<DismissedItem> {
+  final String itemId;
+  final DateTime dismissedAt;
+  const DismissedItem({required this.itemId, required this.dismissedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['item_id'] = Variable<String>(itemId);
+    map['dismissed_at'] = Variable<DateTime>(dismissedAt);
+    return map;
+  }
+
+  DismissedItemsCompanion toCompanion(bool nullToAbsent) {
+    return DismissedItemsCompanion(
+      itemId: Value(itemId),
+      dismissedAt: Value(dismissedAt),
+    );
+  }
+
+  factory DismissedItem.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DismissedItem(
+      itemId: serializer.fromJson<String>(json['itemId']),
+      dismissedAt: serializer.fromJson<DateTime>(json['dismissedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'itemId': serializer.toJson<String>(itemId),
+      'dismissedAt': serializer.toJson<DateTime>(dismissedAt),
+    };
+  }
+
+  DismissedItem copyWith({String? itemId, DateTime? dismissedAt}) =>
+      DismissedItem(
+        itemId: itemId ?? this.itemId,
+        dismissedAt: dismissedAt ?? this.dismissedAt,
+      );
+  DismissedItem copyWithCompanion(DismissedItemsCompanion data) {
+    return DismissedItem(
+      itemId: data.itemId.present ? data.itemId.value : this.itemId,
+      dismissedAt: data.dismissedAt.present
+          ? data.dismissedAt.value
+          : this.dismissedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DismissedItem(')
+          ..write('itemId: $itemId, ')
+          ..write('dismissedAt: $dismissedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(itemId, dismissedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DismissedItem &&
+          other.itemId == this.itemId &&
+          other.dismissedAt == this.dismissedAt);
+}
+
+class DismissedItemsCompanion extends UpdateCompanion<DismissedItem> {
+  final Value<String> itemId;
+  final Value<DateTime> dismissedAt;
+  final Value<int> rowid;
+  const DismissedItemsCompanion({
+    this.itemId = const Value.absent(),
+    this.dismissedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  DismissedItemsCompanion.insert({
+    required String itemId,
+    required DateTime dismissedAt,
+    this.rowid = const Value.absent(),
+  }) : itemId = Value(itemId),
+       dismissedAt = Value(dismissedAt);
+  static Insertable<DismissedItem> custom({
+    Expression<String>? itemId,
+    Expression<DateTime>? dismissedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (itemId != null) 'item_id': itemId,
+      if (dismissedAt != null) 'dismissed_at': dismissedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  DismissedItemsCompanion copyWith({
+    Value<String>? itemId,
+    Value<DateTime>? dismissedAt,
+    Value<int>? rowid,
+  }) {
+    return DismissedItemsCompanion(
+      itemId: itemId ?? this.itemId,
+      dismissedAt: dismissedAt ?? this.dismissedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (itemId.present) {
+      map['item_id'] = Variable<String>(itemId.value);
+    }
+    if (dismissedAt.present) {
+      map['dismissed_at'] = Variable<DateTime>(dismissedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DismissedItemsCompanion(')
+          ..write('itemId: $itemId, ')
+          ..write('dismissedAt: $dismissedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1519,6 +1740,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $SnapshotItemsTable snapshotItems = $SnapshotItemsTable(this);
   late final $RunRatingsTable runRatings = $RunRatingsTable(this);
   late final $PromptsTable prompts = $PromptsTable(this);
+  late final $DismissedItemsTable dismissedItems = $DismissedItemsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1528,6 +1750,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     snapshotItems,
     runRatings,
     prompts,
+    dismissedItems,
   ];
 }
 
@@ -2761,6 +2984,153 @@ typedef $$PromptsTableProcessedTableManager =
       Prompt,
       PrefetchHooks Function()
     >;
+typedef $$DismissedItemsTableCreateCompanionBuilder =
+    DismissedItemsCompanion Function({
+      required String itemId,
+      required DateTime dismissedAt,
+      Value<int> rowid,
+    });
+typedef $$DismissedItemsTableUpdateCompanionBuilder =
+    DismissedItemsCompanion Function({
+      Value<String> itemId,
+      Value<DateTime> dismissedAt,
+      Value<int> rowid,
+    });
+
+class $$DismissedItemsTableFilterComposer
+    extends Composer<_$AppDatabase, $DismissedItemsTable> {
+  $$DismissedItemsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get itemId => $composableBuilder(
+    column: $table.itemId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get dismissedAt => $composableBuilder(
+    column: $table.dismissedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$DismissedItemsTableOrderingComposer
+    extends Composer<_$AppDatabase, $DismissedItemsTable> {
+  $$DismissedItemsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get itemId => $composableBuilder(
+    column: $table.itemId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get dismissedAt => $composableBuilder(
+    column: $table.dismissedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$DismissedItemsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DismissedItemsTable> {
+  $$DismissedItemsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get itemId =>
+      $composableBuilder(column: $table.itemId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get dismissedAt => $composableBuilder(
+    column: $table.dismissedAt,
+    builder: (column) => column,
+  );
+}
+
+class $$DismissedItemsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $DismissedItemsTable,
+          DismissedItem,
+          $$DismissedItemsTableFilterComposer,
+          $$DismissedItemsTableOrderingComposer,
+          $$DismissedItemsTableAnnotationComposer,
+          $$DismissedItemsTableCreateCompanionBuilder,
+          $$DismissedItemsTableUpdateCompanionBuilder,
+          (
+            DismissedItem,
+            BaseReferences<_$AppDatabase, $DismissedItemsTable, DismissedItem>,
+          ),
+          DismissedItem,
+          PrefetchHooks Function()
+        > {
+  $$DismissedItemsTableTableManager(
+    _$AppDatabase db,
+    $DismissedItemsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DismissedItemsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DismissedItemsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DismissedItemsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> itemId = const Value.absent(),
+                Value<DateTime> dismissedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DismissedItemsCompanion(
+                itemId: itemId,
+                dismissedAt: dismissedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String itemId,
+                required DateTime dismissedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => DismissedItemsCompanion.insert(
+                itemId: itemId,
+                dismissedAt: dismissedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$DismissedItemsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $DismissedItemsTable,
+      DismissedItem,
+      $$DismissedItemsTableFilterComposer,
+      $$DismissedItemsTableOrderingComposer,
+      $$DismissedItemsTableAnnotationComposer,
+      $$DismissedItemsTableCreateCompanionBuilder,
+      $$DismissedItemsTableUpdateCompanionBuilder,
+      (
+        DismissedItem,
+        BaseReferences<_$AppDatabase, $DismissedItemsTable, DismissedItem>,
+      ),
+      DismissedItem,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -2773,4 +3143,6 @@ class $AppDatabaseManager {
       $$RunRatingsTableTableManager(_db, _db.runRatings);
   $$PromptsTableTableManager get prompts =>
       $$PromptsTableTableManager(_db, _db.prompts);
+  $$DismissedItemsTableTableManager get dismissedItems =>
+      $$DismissedItemsTableTableManager(_db, _db.dismissedItems);
 }
