@@ -74,6 +74,13 @@ the physical Pixel:
 
 Never report these as working because a CI run was green.
 
+On-device status: a Pixel 9 Briefing Run recorded `rankedBy == model` on
+2026-08-28 (screenshot-confirmed, per
+[docs/plan/milestone-0-spikes.md](docs/plan/milestone-0-spikes.md) Task 0.1).
+The enabling code is PRs #41–#45, not yet merged. Ranking quality is not yet
+good, and Nano returns `BACKGROUND_USE_BLOCKED` unless the app is foreground —
+inference in the morning Briefing Run is impossible on this engine.
+
 ## Non-negotiables
 
 - **The deterministic fallback ranker always works.** The model is never the
