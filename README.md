@@ -11,14 +11,14 @@ release — several architectural decisions depend on that.
 
 ## Start here
 
-**If you are an AI agent or a developer new to this repo, read these three, in
+**If you are an AI agent or a developer new to this repo, read these four, in
 this order, before writing any code:**
 
 | Read | Why |
 |------|-----|
 | [docs/VISION.md](docs/VISION.md) | What the app is for, the two failures it exists to fix, and what it deliberately will not do. |
 | [CONTEXT.md](CONTEXT.md) | The domain glossary. Use this vocabulary in all code, types, comments and commit messages. |
-| [docs/adr/](docs/adr/) | Four decisions that look arbitrary without their reasoning. |
+| [docs/adr/](docs/adr/) | The decisions that look arbitrary without their reasoning. |
 | [docs/plan/](docs/plan/README.md) | The work, as ordered tasks with acceptance criteria. |
 
 Then pick up the next unfinished task in the current milestone.
