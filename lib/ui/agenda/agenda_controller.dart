@@ -2,12 +2,14 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:righthere_rightnow/briefing/briefing_run_orchestrator.dart';
+import 'package:righthere_rightnow/briefing/inference_status.dart';
 import 'package:righthere_rightnow/briefing/providers.dart';
 import 'package:righthere_rightnow/data/providers.dart';
 import 'package:righthere_rightnow/domain/ranked_agenda.dart';
 import 'package:righthere_rightnow/inference/inference_outcome.dart';
 import 'package:righthere_rightnow/scheduling/notification_navigation.dart'
     as notification_navigation;
+import 'package:righthere_rightnow/ui/agenda/inference_status_controller.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'agenda_controller.g.dart';
@@ -18,6 +20,7 @@ class DailyAgendaController extends _$DailyAgendaController {
   Future<BriefingRunResult> build() async {
     final result = await ref.read(briefingRunOrchestratorProvider).run();
     ref.invalidate(lastBriefingRunCompletedAtProvider);
+    ref.read(inferenceStatusControllerProvider.notifier).reset();
     _rerankWithModel(result);
     _generateFramingLine(result);
     return result;
@@ -31,6 +34,7 @@ class DailyAgendaController extends _$DailyAgendaController {
     ref.invalidate(lastBriefingRunCompletedAtProvider);
     final result = state.value;
     if (result != null) {
+      ref.read(inferenceStatusControllerProvider.notifier).reset();
       _rerankWithModel(result);
       _generateFramingLine(result);
     }
@@ -40,9 +44,12 @@ class DailyAgendaController extends _$DailyAgendaController {
   /// called (ADR-0006) -- this only ever reorders it in place once the
   /// model responds, and never blocks or replaces the initial render.
   void _rerankWithModel(BriefingRunResult fallbackResult) {
+    final status = ref.read(inferenceStatusControllerProvider.notifier)
+      ..started(InferenceWork.ranking);
     unawaited(
       ref.read(modelRerankerProvider).rerank(fallbackResult).then((outcome) {
         _logOutcome('rerank', outcome);
+        status.settled(InferenceWork.ranking, outcome);
         final reranked = outcome.valueOrNull;
         if (reranked != null) {
           _mergeIntoState(
@@ -57,11 +64,14 @@ class DailyAgendaController extends _$DailyAgendaController {
   /// every widget rebuild, and never a second time for the same run once
   /// this method has run for it.
   void _generateFramingLine(BriefingRunResult fallbackResult) {
+    final status = ref.read(inferenceStatusControllerProvider.notifier)
+      ..started(InferenceWork.framing);
     unawaited(
       ref.read(framingLineGeneratorProvider).generate(fallbackResult).then((
         outcome,
       ) {
         _logOutcome('framingLine', outcome);
+        status.settled(InferenceWork.framing, outcome);
         final line = outcome.valueOrNull;
         if (line != null) {
           _mergeIntoState((current) => current.copyWith(framingLine: line));
