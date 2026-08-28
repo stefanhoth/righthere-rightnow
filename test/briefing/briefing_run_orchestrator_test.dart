@@ -119,6 +119,53 @@ void main() {
 
   tearDown(() => database.close());
 
+  test('a dismissed Agenda Item never reaches the Candidate Set', () async {
+    // Filtered before assembly, not hidden after ranking: a dismissed item
+    // must not occupy one of the 25 candidate slots, reach the model, or be
+    // snapshotted as something that competed.
+    when(
+      () => calendarReader.fetchCommitments(
+        start: any(named: 'start'),
+        end: any(named: 'end'),
+      ),
+    ).thenAnswer(
+      (_) async => [
+        _commitment('cal:kept', clock().add(const Duration(hours: 1))),
+        _commitment('cal:dismissed', clock().add(const Duration(hours: 2))),
+      ],
+    );
+    await database.dismissItem('cal:dismissed', at: clock());
+
+    final result = await orchestrator.run();
+
+    final ids = result.agenda.items.map((item) => item.id);
+    expect(ids, contains('cal:kept'));
+    expect(ids, isNot(contains('cal:dismissed')));
+    expect(
+      result.candidateItems.map((candidate) => candidate.item.id),
+      isNot(contains('cal:dismissed')),
+    );
+  });
+
+  test('undismissing brings an Agenda Item back', () async {
+    when(
+      () => calendarReader.fetchCommitments(
+        start: any(named: 'start'),
+        end: any(named: 'end'),
+      ),
+    ).thenAnswer(
+      (_) async => [
+        _commitment('cal:oops', clock().add(const Duration(hours: 1))),
+      ],
+    );
+    await database.dismissItem('cal:oops', at: clock());
+    await database.undismissItem('cal:oops');
+
+    final result = await orchestrator.run();
+
+    expect(result.agenda.items.map((item) => item.id), contains('cal:oops'));
+  });
+
   test('rankedBy is always fallback in this milestone', () async {
     final result = await orchestrator.run();
 

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:device_calendar_plus/device_calendar_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -209,8 +211,69 @@ class _AgendaBody extends ConsumerWidget {
           .reorder(oldIndex, newIndex),
       children: [
         for (final item in rankedItems)
-          _AgendaTile(key: ValueKey(item.id), item: item),
+          if (_isDismissible(item, DateTime.now()))
+            Dismissible(
+              key: ValueKey('dismiss:${item.id}'),
+              // Horizontal only. ReorderableListView owns long-press-drag,
+              // so a swipe is the one gesture that cannot be confused with
+              // reordering -- which is the point: a finished meeting should
+              // not have to be dragged out of the way.
+              background: const _DismissBackground(),
+              secondaryBackground: const _DismissBackground(),
+              onDismissed: (_) => _dismiss(context, ref, item),
+              child: _AgendaTile(key: ValueKey(item.id), item: item),
+            )
+          else
+            _AgendaTile(key: ValueKey(item.id), item: item),
       ],
+    );
+  }
+}
+
+/// Only a Commitment that has already finished can be dismissed.
+///
+/// It is on the list because a finished meeting may have created work (a
+/// Follow-up Suggestion). "It did not" is a real answer. A Task, by
+/// contrast, is dismissed by completing it in Todoist -- this app never
+/// writes there.
+bool _isDismissible(AgendaItem item, DateTime now) =>
+    item is Commitment && item.end.isBefore(now);
+
+void _dismiss(BuildContext context, WidgetRef ref, AgendaItem item) {
+  final controller = ref.read(dailyAgendaControllerProvider.notifier);
+  unawaited(controller.dismiss(item.id));
+
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(
+      SnackBar(
+        key: const Key('dismissedSnackBar'),
+        content: Text('Dismissed "${item.title}"'),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () => unawaited(controller.undismiss(item.id)),
+        ),
+      ),
+    );
+}
+
+class _DismissBackground extends StatelessWidget {
+  const _DismissBackground();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      alignment: Alignment.centerLeft,
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.check),
+          const SizedBox(width: 8),
+          Text('Nothing to do', style: Theme.of(context).textTheme.labelLarge),
+        ],
+      ),
     );
   }
 }

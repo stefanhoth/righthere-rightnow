@@ -57,7 +57,27 @@ class Prompts extends Table {
   DateTimeColumn get updatedAt => dateTime()();
 }
 
-@DriftDatabase(tables: [BriefingRuns, SnapshotItems, RunRatings, Prompts])
+/// An Agenda Item the user has said needs nothing further.
+///
+/// Only past Commitments can be dismissed. They appear at all because a
+/// finished meeting may have created work (a Follow-up Suggestion); saying
+/// it did not is a real answer, and one the app must remember rather than
+/// ask again tomorrow.
+///
+/// Keyed by the Agenda Item's id, which for a Commitment is per-occurrence
+/// (`cal:eventId:begin`), so dismissing one instance never silences the
+/// series.
+class DismissedItems extends Table {
+  TextColumn get itemId => text()();
+  DateTimeColumn get dismissedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {itemId};
+}
+
+@DriftDatabase(
+  tables: [BriefingRuns, SnapshotItems, RunRatings, Prompts, DismissedItems],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
@@ -73,7 +93,7 @@ class AppDatabase extends _$AppDatabase {
       const DriftDatabaseOptions(storeDateTimeAsText: true);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -85,8 +105,31 @@ class AppDatabase extends _$AppDatabase {
       if (from < 3) {
         await m.addColumn(briefingRuns, briefingRuns.framingLine);
       }
+      if (from < 4) {
+        await m.createTable(dismissedItems);
+      }
     },
   );
+
+  /// Records that [itemId] needs nothing further. Idempotent: dismissing
+  /// something already dismissed just refreshes when it happened.
+  Future<void> dismissItem(String itemId, {required DateTime at}) {
+    return into(dismissedItems).insertOnConflictUpdate(
+      DismissedItemsCompanion.insert(itemId: itemId, dismissedAt: at),
+    );
+  }
+
+  /// Undoes [dismissItem], so the item can come back.
+  Future<void> undismissItem(String itemId) {
+    return (delete(dismissedItems)..where((r) => r.itemId.equals(itemId))).go();
+  }
+
+  /// Every dismissed Agenda Item id. Read once per Briefing Run and used to
+  /// filter, so a dismissal survives restarts and future runs.
+  Future<Set<String>> dismissedItemIds() async {
+    final rows = await select(dismissedItems).get();
+    return rows.map((row) => row.itemId).toSet();
+  }
 
   /// When the most recent Briefing Run finished, or null if none ever has.
   /// Used to tell a silent alarm from a healthy one that just hasn't fired
