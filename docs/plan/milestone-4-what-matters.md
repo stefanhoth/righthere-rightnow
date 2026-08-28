@@ -11,9 +11,9 @@ Read [ADR-0007](../adr/0007-overdue-escalates-by-consequence.md),
 [ADR-0008](../adr/0008-what-matters-is-prose-with-a-cached-extraction.md) and
 [ADR-0009](../adr/0009-right-now-is-a-derived-view.md) first.
 
-> **Everything from Task 4.4 onward assumes an engine that works.** Tasks 4.1
-> to 4.3 exist because that has never been demonstrated. Do not reorder them
-> to the end.
+> **Everything from Task 4.4 onward assumes an engine that works.** Task 4.2
+> proved that on the device on 2026-08-28; Tasks 4.1 and 4.3 make the result
+> legible and durable. Do not reorder them to the end.
 
 ---
 
@@ -48,11 +48,22 @@ the app *does*.
 
 ## Task 4.2 — Prove a model runs on the Pixel
 
-Milestone 3 has 36 test files and green CI, and none of it is evidence that
-any engine has ever returned a ranking on the device. `CLAUDE.md` says as much.
-Both Milestone 0 spikes still read `**Result:** _(not yet run)_`.
+**Done (2026-08-28).** A release build on the Pixel 9 recorded a Briefing Run
+with `rankedBy == model` — status line "Ranked by the model", screenshot-
+confirmed, 10.85 s, 3371 input / 57 output tokens, order visibly the model's.
+The written finding, timings, and the five device-only fixes it took are in
+[milestone-0-spikes.md](milestone-0-spikes.md) Task 0.1. Nano was available, so
+the LiteRT-LM + Gemma fallback below was not needed.
 
-**Steps**
+Two follow-ups, neither blocking this task:
+
+- The fixes are PRs #41–#45 (stack from `fix/serialize-inference`), not yet
+  merged. When they land, glance at one `main` release run to confirm nothing
+  regressed — but the question this task asked is settled.
+- Ranking *quality* was poor: the model buried the two most consequential
+  items. That is Tasks 4.5–4.8 and What Matters, not this task.
+
+**Steps** (kept for the record; all completed on 2026-08-28)
 
 1. Release build on the Pixel. Open the app. Record whether `rankedBy` becomes
    `model`, whether a framing line appears, and the engine cold-start time.
@@ -69,10 +80,11 @@ progress". Task 4.1's availability fix exposes the same gap.
 
 **Acceptance criteria**
 
-- A written finding in `milestone-0-spikes.md`, including cold-start timing.
-- At least one Briefing Run on the device records `rankedBy == model`.
-- If Gemma is adopted: the download has visible progress, survives being
-  interrupted, and the app is usable while it runs.
+- [x] A written finding in `milestone-0-spikes.md`, including cold-start timing.
+- [x] At least one Briefing Run on the device records `rankedBy == model`.
+- [n/a] If Gemma is adopted: the download has visible progress, survives being
+  interrupted, and the app is usable while it runs. — Gemma not adopted; Nano
+  worked.
 
 ---
 

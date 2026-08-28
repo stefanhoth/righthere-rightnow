@@ -44,7 +44,58 @@ model becomes a ~0.5–2.6 GB runtime download.
   long did cold start take, what failed.
 - If it fails, the exception and its message are recorded verbatim.
 
-**Result:** _(not yet run)_
+**Result** (release build, Pixel 9, Android 17 / SDK 37, 2026-08-28):
+
+The isolate question is moot — [ADR-0006](../adr/0006-inference-runs-when-the-app-opens.md)
+moved inference to app-open in the foreground. This section now records what an
+engine does on the device.
+
+*The engine runs, and the model ranked.* A Briefing Run on the device recorded
+`rankedBy == model` — the Daily Agenda status line read "Ranked by the model",
+confirmed by screenshot. The completion took **10.85 s** (3371 input tokens,
+57 output tokens). The order was visibly the model's, not the fallback ranker's:
+the block of 22-day-overdue items was gone from the top, replaced by near-due
+work. Two earlier completions during the same session measured **8.76 s** and
+**16.4 s**.
+
+Five defects had to be cleared first, every one found on the device rather than
+reasoned about:
+
+1. **R8 stripped a reflectively-instantiated ML Kit constructor**, so the engine
+   was never reachable. Fixed by the keep rule in PR #38 (merged).
+2. **Two inferences raced on one native session.** Re-ranking and framing-line
+   generation both called `createSession()`, each closing the other's session;
+   the first failed with `Bad state: Session is closed`. Fixed by serialising
+   `complete()` in the engine (PR #41).
+3. **`maxOutputTokens` ceiling of 256.** ML Kit's GenAI Prompt API applies 256
+   when none is passed and throws on any bound above it
+   (`maxOutputTokens must be between 1 and 256`). A JSON array of 25 Agenda Item
+   ids runs 250–300 tokens and was truncated mid-array on every run since
+   PR #28, so `validateModelRanking` discarded it and the fallback ranker ran
+   silently.
+4. **Item numbers instead of ids.** The model now answers with a per-item
+   number; the same run came back at 57 tokens, well inside 256 (PR #42).
+5. **The renumbering did not reach the device.** The prompt is versioned data
+   seeded once into Drift (ADR-0003), so the Pixel kept running the v1 text
+   that asked for ids. The output-format contract is a contract with the
+   validator, not a tuning knob, so it moved into `buildRankingPrompt` in code
+   (PR #42).
+
+Also recorded on the device: **`BACKGROUND_USE_BLOCKED` (ErrorCode 30)** —
+Nano via ML Kit GenAI refuses to run unless the app is in the foreground. This
+makes [ADR-0006](../adr/0006-inference-runs-when-the-app-opens.md) a hard
+constraint of the engine, not a design preference: inference inside the morning
+Briefing Run is impossible on Nano.
+
+*Caveats.*
+
+- The enabling code is the `fix/serialize-inference` → #45 stack (PRs #41–#45,
+  from local branch `claude/ranking-output-budget`), not yet merged. Glance at a
+  `main` release run once they land; the result above stands regardless.
+- Working is not the same as good. In the confirmed run the model buried the two
+  items that looked most consequential and floated a low-stakes one. Ranking
+  *quality* is what Milestone 4's later tasks and What Matters address; this
+  spike only asked whether the model runs and ranks at all, and it does.
 
 ---
 
