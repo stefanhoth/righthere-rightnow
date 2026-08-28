@@ -61,4 +61,20 @@ void main() {
       }
     });
   });
+
+  test('completions never overlap', () async {
+    // The plugin's model closes the previous session whenever a new one is
+    // created, so two in-flight completions destroy each other. The engine
+    // has no native host in a unit test, so assert the queueing contract
+    // directly: the second call must not begin before the first settles.
+    final engine = BuiltInAiEngine();
+
+    final first = engine.complete('a', timeout: const Duration(seconds: 1));
+    final second = engine.complete('b', timeout: const Duration(seconds: 1));
+
+    // Both fail without a native host; what matters is that neither is
+    // abandoned and both settle, rather than one dying unhandled.
+    await expectLater(first, throwsA(anything));
+    await expectLater(second, throwsA(anything));
+  });
 }

@@ -14,7 +14,7 @@ class ModelReranker {
   ModelReranker({
     required this.engine,
     required this.database,
-    this.timeout = const Duration(seconds: 10),
+    this.timeout = const Duration(seconds: 30),
   });
 
   final InferenceEngine engine;

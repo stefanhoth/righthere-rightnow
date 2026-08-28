@@ -17,6 +17,11 @@ class BuiltInAiEngine implements InferenceEngine {
 
   Future<InferenceModel>? _model;
 
+  /// Serialises completions. The plugin's model holds a *single* native
+  /// session -- `createSession()` closes the previous one -- so two
+  /// overlapping completions destroy each other.
+  Future<void> _queue = Future<void>.value();
+
   @override
   Future<EngineAvailability> availability() async {
     try {
@@ -26,11 +31,29 @@ class BuiltInAiEngine implements InferenceEngine {
     }
   }
 
+  /// Completions are queued, never run in parallel.
+  ///
+  /// The Daily Agenda screen starts re-ranking and framing-line generation
+  /// together. Both reach this method, both call `createSession()`, and the
+  /// second closes the first's session -- the first then fails with
+  /// `Bad state: Session is closed`, as an *unhandled* async error. Queueing
+  /// is the engine's job: the interface promises `complete()` works, and no
+  /// caller should have to know the native session is a singleton.
+  ///
+  /// [timeout] covers this completion only. It starts when the call reaches
+  /// the front of the queue, so a slow completion ahead of it can never time
+  /// this one out before it has begun.
   @override
   Future<String> complete(
     String prompt, {
-    Duration timeout = const Duration(seconds: 10),
-  }) async {
+    Duration timeout = const Duration(seconds: 30),
+  }) {
+    final result = _queue.then((_) => _completeExclusively(prompt, timeout));
+    _queue = result.then<void>((_) {}).catchError((Object _) {});
+    return result;
+  }
+
+  Future<String> _completeExclusively(String prompt, Duration timeout) async {
     final model = await (_model ??= _loadModel()).timeout(timeout);
     final session = await model.createSession();
     try {
