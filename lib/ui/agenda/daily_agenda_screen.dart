@@ -8,6 +8,7 @@ import 'package:righthere_rightnow/briefing/staleness.dart';
 import 'package:righthere_rightnow/domain/agenda_item.dart';
 import 'package:righthere_rightnow/ui/agenda/agenda_controller.dart';
 import 'package:righthere_rightnow/ui/agenda/agenda_pill.dart';
+import 'package:righthere_rightnow/ui/agenda/inference_status_controller.dart';
 import 'package:righthere_rightnow/ui/agenda/task_title.dart';
 import 'package:righthere_rightnow/ui/settings/settings_screen.dart';
 import 'package:simple_icons/simple_icons.dart';
@@ -176,6 +177,7 @@ class _AgendaBody extends ConsumerWidget {
     final header = Column(
       children: [
         if (result.framingLine != null) _FramingLine(text: result.framingLine!),
+        const _InferenceStatusLine(),
         _LastRunBanner(result: result),
         const _RatingButtons(),
         if (launchRunId != null) const _OpenedFromNotificationBanner(),
@@ -267,6 +269,55 @@ class _FramingLine extends StatelessWidget {
         maxLines: 3,
         overflow: TextOverflow.ellipsis,
         style: Theme.of(context).textTheme.titleMedium,
+      ),
+    );
+  }
+}
+
+/// Says what the model is doing, or what it did.
+///
+/// Inference runs behind an agenda that is already on screen (ADR-0006), so
+/// without this the screen looks identical whether the model is thinking,
+/// finished, or was never reachable at all.
+class _InferenceStatusLine extends ConsumerWidget {
+  const _InferenceStatusLine();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final status = ref.watch(inferenceStatusControllerProvider);
+    final summary = status.summary;
+    if (summary == null) {
+      return const SizedBox.shrink();
+    }
+
+    final style = Theme.of(context).textTheme.bodySmall;
+    return Padding(
+      key: const Key('inferenceStatus'),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (status.isRunning) ...[
+            SizedBox(
+              width: 12,
+              height: 12,
+              child: CircularProgressIndicator(
+                key: const Key('inferenceSpinner'),
+                strokeWidth: 2,
+                color: style?.color,
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
+          Flexible(
+            child: Text(
+              summary,
+              key: const Key('inferenceStatusText'),
+              style: style,
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
       ),
     );
   }
