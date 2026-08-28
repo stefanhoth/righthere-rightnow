@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'package:righthere_rightnow/briefing/briefing_run_orchestrator.dart';
 import 'package:righthere_rightnow/briefing/providers.dart';
 import 'package:righthere_rightnow/data/providers.dart';
 import 'package:righthere_rightnow/domain/ranked_agenda.dart';
+import 'package:righthere_rightnow/inference/inference_outcome.dart';
 import 'package:righthere_rightnow/scheduling/notification_navigation.dart'
     as notification_navigation;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -39,7 +41,9 @@ class DailyAgendaController extends _$DailyAgendaController {
   /// model responds, and never blocks or replaces the initial render.
   void _rerankWithModel(BriefingRunResult fallbackResult) {
     unawaited(
-      ref.read(modelRerankerProvider).rerank(fallbackResult).then((reranked) {
+      ref.read(modelRerankerProvider).rerank(fallbackResult).then((outcome) {
+        _logOutcome('rerank', outcome);
+        final reranked = outcome.valueOrNull;
         if (reranked != null) {
           _mergeIntoState(
             (current) => current.copyWith(agenda: reranked.agenda),
@@ -55,13 +59,30 @@ class DailyAgendaController extends _$DailyAgendaController {
   void _generateFramingLine(BriefingRunResult fallbackResult) {
     unawaited(
       ref.read(framingLineGeneratorProvider).generate(fallbackResult).then((
-        line,
+        outcome,
       ) {
+        _logOutcome('framingLine', outcome);
+        final line = outcome.valueOrNull;
         if (line != null) {
           _mergeIntoState((current) => current.copyWith(framingLine: line));
         }
       }),
     );
+  }
+
+  /// Records why inference produced nothing, so Task 4.2's device check has
+  /// something to read. Task 4.3 puts this on screen; until then the log is
+  /// the only place a silent failure is visible at all.
+  void _logOutcome<T>(String what, InferenceOutcome<T> outcome) {
+    final detail = switch (outcome) {
+      InferenceSucceeded<T>() => null,
+      InferenceSkipped<T>(:final availability) =>
+        'skipped: engine ${availability.name}',
+      InferenceFailed<T>(:final failure) => 'failed: ${failure.name}',
+    };
+    if (detail != null) {
+      developer.log('$what $detail', name: 'DailyAgendaController');
+    }
   }
 
   /// Applies [merge] to whatever the current state holds, not to the

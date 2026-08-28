@@ -4,6 +4,7 @@ import 'dart:developer' as developer;
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:flutter_gemma_builtin_ai/flutter_gemma_builtin_ai.dart'
     as builtin_ai;
+import 'package:meta/meta.dart';
 import 'package:righthere_rightnow/inference/inference_engine.dart';
 
 /// Gemini Nano via ML Kit GenAI (AICore) -- see ADR-0004. The model and its
@@ -17,20 +18,11 @@ class BuiltInAiEngine implements InferenceEngine {
   Future<InferenceModel>? _model;
 
   @override
-  Future<bool> isAvailable() async {
+  Future<EngineAvailability> availability() async {
     try {
-      final status = await builtin_ai.BuiltInAi.availability();
-      return switch (status) {
-        builtin_ai.BuiltInAiAvailability.available ||
-        builtin_ai.BuiltInAiAvailability.downloadable ||
-        builtin_ai.BuiltInAiAvailability.downloading => true,
-        builtin_ai.BuiltInAiAvailability.unavailableDeviceUnsupported ||
-        builtin_ai.BuiltInAiAvailability.unavailableOsTooOld ||
-        builtin_ai.BuiltInAiAvailability.unavailableDisabled ||
-        builtin_ai.BuiltInAiAvailability.unavailableOther => false,
-      };
+      return engineAvailabilityFrom(await builtin_ai.BuiltInAi.availability());
     } on Exception {
-      return false;
+      return EngineAvailability.unsupported;
     }
   }
 
@@ -74,4 +66,27 @@ class BuiltInAiEngine implements InferenceEngine {
       );
     }
   }
+}
+
+/// Maps ML Kit's availability to ours.
+///
+/// `downloadable` and `downloading` were previously reported as available,
+/// so on a device where AICore had not yet fetched Nano the caller passed
+/// the check, called `complete()`, and failed. They are
+/// [EngineAvailability.notReady]: the
+/// model may arrive later, but it cannot answer a prompt now.
+@visibleForTesting
+EngineAvailability engineAvailabilityFrom(
+  builtin_ai.BuiltInAiAvailability status,
+) {
+  return switch (status) {
+    builtin_ai.BuiltInAiAvailability.available => EngineAvailability.ready,
+    builtin_ai.BuiltInAiAvailability.downloadable ||
+    builtin_ai.BuiltInAiAvailability.downloading => EngineAvailability.notReady,
+    builtin_ai.BuiltInAiAvailability.unavailableDeviceUnsupported ||
+    builtin_ai.BuiltInAiAvailability.unavailableOsTooOld ||
+    builtin_ai.BuiltInAiAvailability.unavailableDisabled ||
+    builtin_ai.BuiltInAiAvailability.unavailableOther =>
+      EngineAvailability.unsupported,
+  };
 }

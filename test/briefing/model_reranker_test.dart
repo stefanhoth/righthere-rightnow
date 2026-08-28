@@ -16,6 +16,7 @@ import 'package:righthere_rightnow/domain/priority.dart';
 import 'package:righthere_rightnow/domain/ranked_agenda.dart';
 import 'package:righthere_rightnow/domain/task_due.dart';
 import 'package:righthere_rightnow/inference/inference_engine.dart';
+import 'package:righthere_rightnow/inference/inference_outcome.dart';
 
 class _MockCalendarReader extends Mock implements CalendarReader {}
 
@@ -29,7 +30,8 @@ class _FakeInferenceEngine implements InferenceEngine {
   final Exception? error;
 
   @override
-  Future<bool> isAvailable() async => available;
+  Future<EngineAvailability> availability() async =>
+      available ? EngineAvailability.ready : EngineAvailability.notReady;
 
   @override
   Future<String> complete(
@@ -155,10 +157,11 @@ void main() {
 
     final result = await reranker.rerank(fallbackResult);
 
-    expect(result, isNotNull);
-    expect(result!.agenda.rankedBy, RankedBy.model);
-    expect(result.agenda.promptVersion, 'v1');
-    expect(result.agenda.items.map((i) => i.id), ids);
+    expect(result, isA<InferenceSucceeded<BriefingRunResult>>());
+    final reranked = result.valueOrNull!;
+    expect(reranked.agenda.rankedBy, RankedBy.model);
+    expect(reranked.agenda.promptVersion, 'v1');
+    expect(reranked.agenda.items.map((item) => item.id), ids);
 
     final storedRun = await (database.select(
       database.briefingRuns,
@@ -175,7 +178,7 @@ void main() {
 
     final result = await reranker.rerank(fallbackResult);
 
-    expect(result, isNull);
+    expect(result, _skippedBecause(EngineAvailability.notReady));
     final storedRun = await (database.select(
       database.briefingRuns,
     )..where((r) => r.id.equals(fallbackResult.runId))).getSingle();
@@ -192,8 +195,22 @@ void main() {
 
     final result = await reranker.rerank(fallbackResult);
 
-    expect(result, isNull);
+    expect(result, _failedWith(InferenceFailure.timedOut));
   });
+
+  test(
+    'an engine that throws is distinguishable from one that times out',
+    () async {
+      final reranker = ModelReranker(
+        engine: _FakeInferenceEngine(error: Exception('AICore is not there')),
+        database: database,
+      );
+
+      final result = await reranker.rerank(fallbackResult);
+
+      expect(result, _failedWith(InferenceFailure.engineThrew));
+    },
+  );
 
   test(
     'unparseable model output leaves the fallback result untouched',
@@ -205,7 +222,7 @@ void main() {
 
       final result = await reranker.rerank(fallbackResult);
 
-      expect(result, isNull);
+      expect(result, _failedWith(InferenceFailure.unusableOutput));
       final storedRun = await (database.select(
         database.briefingRuns,
       )..where((r) => r.id.equals(fallbackResult.runId))).getSingle();
@@ -213,3 +230,17 @@ void main() {
     },
   );
 }
+
+Matcher _skippedBecause(EngineAvailability availability) =>
+    isA<InferenceSkipped<BriefingRunResult>>().having(
+      (outcome) => outcome.availability,
+      'availability',
+      availability,
+    );
+
+Matcher _failedWith(InferenceFailure failure) =>
+    isA<InferenceFailed<BriefingRunResult>>().having(
+      (outcome) => outcome.failure,
+      'failure',
+      failure,
+    );

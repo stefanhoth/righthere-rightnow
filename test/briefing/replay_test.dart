@@ -24,7 +24,8 @@ class _FakeInferenceEngine implements InferenceEngine {
   var _calls = 0;
 
   @override
-  Future<bool> isAvailable() async => available;
+  Future<EngineAvailability> availability() async =>
+      available ? EngineAvailability.ready : EngineAvailability.notReady;
 
   @override
   Future<String> complete(

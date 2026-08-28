@@ -11,6 +11,7 @@ import 'package:righthere_rightnow/data/db/app_database.dart';
 import 'package:righthere_rightnow/data/settings/todoist_token_storage.dart';
 import 'package:righthere_rightnow/data/todoist/todoist_client.dart';
 import 'package:righthere_rightnow/inference/inference_engine.dart';
+import 'package:righthere_rightnow/inference/inference_outcome.dart';
 
 class _MockCalendarReader extends Mock implements CalendarReader {}
 
@@ -24,7 +25,8 @@ class _FakeInferenceEngine implements InferenceEngine {
   final Exception? error;
 
   @override
-  Future<bool> isAvailable() async => available;
+  Future<EngineAvailability> availability() async =>
+      available ? EngineAvailability.ready : EngineAvailability.notReady;
 
   @override
   Future<String> complete(
@@ -130,7 +132,7 @@ void main() {
 
     final line = await generator.generate(fallbackResult);
 
-    expect(line, 'A quiet day -- protect the morning.');
+    expect(line.valueOrNull, 'A quiet day -- protect the morning.');
     final storedRun = await (database.select(
       database.briefingRuns,
     )..where((r) => r.id.equals(fallbackResult.runId))).getSingle();
@@ -145,7 +147,14 @@ void main() {
 
     final line = await generator.generate(fallbackResult);
 
-    expect(line, isNull);
+    expect(
+      line,
+      isA<InferenceSkipped<String>>().having(
+        (outcome) => outcome.availability,
+        'availability',
+        EngineAvailability.notReady,
+      ),
+    );
   });
 
   test('a timing-out engine produces no line', () async {
@@ -158,8 +167,22 @@ void main() {
 
     final line = await generator.generate(fallbackResult);
 
-    expect(line, isNull);
+    expect(line, _failedWith(InferenceFailure.timedOut));
   });
+
+  test(
+    'an engine that throws is distinguishable from one that times out',
+    () async {
+      final generator = FramingLineGenerator(
+        engine: _FakeInferenceEngine(error: Exception('AICore is not there')),
+        database: database,
+      );
+
+      final line = await generator.generate(fallbackResult);
+
+      expect(line, _failedWith(InferenceFailure.engineThrew));
+    },
+  );
 
   test('an empty response produces no line', () async {
     final generator = FramingLineGenerator(
@@ -169,10 +192,13 @@ void main() {
 
     final line = await generator.generate(fallbackResult);
 
-    expect(line, isNull);
+    expect(line, _failedWith(InferenceFailure.emptyOutput));
     final storedRun = await (database.select(
       database.briefingRuns,
     )..where((r) => r.id.equals(fallbackResult.runId))).getSingle();
     expect(storedRun.framingLine, isNull);
   });
 }
+
+Matcher _failedWith(InferenceFailure failure) => isA<InferenceFailed<String>>()
+    .having((outcome) => outcome.failure, 'failure', failure);

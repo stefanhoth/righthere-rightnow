@@ -23,7 +23,8 @@ class _MockTodoistTokenStorage extends Mock implements TodoistTokenStorage {}
 /// a widget test that doesn't know to wait for the fire-and-forget re-rank.
 class _FakeUnavailableEngine implements InferenceEngine {
   @override
-  Future<bool> isAvailable() async => false;
+  Future<EngineAvailability> availability() async =>
+      EngineAvailability.unsupported;
 
   @override
   Future<String> complete(String prompt, {Duration timeout = Duration.zero}) {
