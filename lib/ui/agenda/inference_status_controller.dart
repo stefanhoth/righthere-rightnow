@@ -12,7 +12,11 @@ part 'inference_status_controller.g.dart';
 /// is fire-and-forget behind an agenda that is already rendered (ADR-0006),
 /// so its progress is not part of the run's result and must not cause the
 /// list to rebuild from a new result object.
-@riverpod
+// keepAlive: the agenda controller calls `started()` through
+// `ref.read(...notifier)` before any widget watches this. Auto-disposed, the
+// notifier is created, mutated, and thrown away in the same microtask, so
+// the screen only ever watches a fresh empty status and shows nothing.
+@Riverpod(keepAlive: true)
 class InferenceStatusController extends _$InferenceStatusController {
   @override
   InferenceStatus build() => const InferenceStatus();

@@ -26,7 +26,13 @@ class InferenceStatus {
   String? get summary {
     if (running.isNotEmpty) {
       final labels = running.map((work) => work.label).toList()..sort();
-      return '${labels.join(' and ')}…';
+      // Only the first label is sentence-cased: "Ranking your agenda and
+      // writing today's framing", not "... and Writing ...".
+      final joined = [
+        labels.first,
+        ...labels.skip(1).map(_uncapitalise),
+      ].join(' and ');
+      return '$joined…';
     }
     if (notes.isEmpty) {
       return null;
@@ -36,6 +42,9 @@ class InferenceStatus {
         .map((work) => notes[work]!);
     return ordered.join(' · ');
   }
+
+  static String _uncapitalise(String label) =>
+      label.isEmpty ? label : label[0].toLowerCase() + label.substring(1);
 
   InferenceStatus starting(InferenceWork work) => InferenceStatus(
     running: {...running, work},
