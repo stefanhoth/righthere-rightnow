@@ -47,15 +47,22 @@ class BuiltInAiEngine implements InferenceEngine {
   Future<String> complete(
     String prompt, {
     Duration timeout = const Duration(seconds: 30),
+    int? maxOutputTokens,
   }) {
-    final result = _queue.then((_) => _completeExclusively(prompt, timeout));
+    final result = _queue.then(
+      (_) => _completeExclusively(prompt, timeout, maxOutputTokens),
+    );
     _queue = result.then<void>((_) {}).catchError((Object _) {});
     return result;
   }
 
-  Future<String> _completeExclusively(String prompt, Duration timeout) async {
+  Future<String> _completeExclusively(
+    String prompt,
+    Duration timeout,
+    int? maxOutputTokens,
+  ) async {
     final model = await (_model ??= _loadModel()).timeout(timeout);
-    final session = await model.createSession();
+    final session = await model.createSession(maxOutputTokens: maxOutputTokens);
     try {
       await session.addQueryChunk(Message(text: prompt, isUser: true));
       return await session.getResponse().timeout(timeout);

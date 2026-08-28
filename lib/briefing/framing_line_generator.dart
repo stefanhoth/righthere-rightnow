@@ -39,7 +39,11 @@ class FramingLineGenerator {
 
     final String response;
     try {
-      response = await engine.complete(prompt, timeout: timeout);
+      response = await engine.complete(
+        prompt,
+        timeout: timeout,
+        maxOutputTokens: framingLineMaxOutputTokens,
+      );
     } on TimeoutException {
       return const InferenceFailed(InferenceFailure.timedOut);
     } on Exception {

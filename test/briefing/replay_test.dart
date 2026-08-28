@@ -31,6 +31,7 @@ class _FakeInferenceEngine implements InferenceEngine {
   Future<String> complete(
     String prompt, {
     Duration timeout = Duration.zero,
+    int? maxOutputTokens,
   }) async {
     return responses[_calls++];
   }
