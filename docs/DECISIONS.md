@@ -3,6 +3,36 @@
 Smaller calls that shaped the repo but didn't warrant a full ADR. Newest
 first. Add an entry in the same PR that makes the decision.
 
+## 2026-08-28 — What Matters lives in Nextcloud, not a Google Doc
+
+The What Matters document is read over WebDAV from the user's own Nextcloud,
+with one app password in `flutter_secure_storage` — the same pattern the
+Todoist token already uses.
+
+A Google Doc was the stated preference and is the better editor. Reading one
+needs the Docs or Drive API, which are sensitive scopes. A personal OAuth
+client left in Testing status has its refresh tokens expired by Google after
+seven days, and publishing out of Testing requires verification precisely
+because of those scopes. That is a re-authorisation roughly every week,
+forever, to read a file that changes monthly.
+
+Nextcloud costs one credential and one HTTPS GET, is editable from the phone
+app, the web UI and the synced desktop folder, and versions the file itself.
+Obsidian was considered and rejected on a fact rather than a preference: the
+vault has no sync plugin installed and is not git-backed, so it does not reach
+the phone at all.
+
+## 2026-08-28 — `Task.projectName` becomes `todoistProject`
+
+A Project is now a domain concept of this app — long-horizon work declared in
+What Matters. Todoist also has projects, and `Task.projectName` already held
+one.
+
+Two different things one letter apart, both appearing in the ranking prompt, is
+exactly what CONTEXT.md exists to prevent. The Todoist one moves, because
+`todoistProject` is a more honest name for that field regardless, and because
+the new concept is the one that needs the short word.
+
 ## 2026-08-26 — Documentation merges do not cut a release
 
 The Release workflow ignores pushes that touch only `**.md`, `docs/**`,

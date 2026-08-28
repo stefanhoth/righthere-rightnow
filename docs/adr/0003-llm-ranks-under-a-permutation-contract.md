@@ -29,3 +29,12 @@ day per experiment.
 Feedback is captured as drag-to-reorder, because a corrected order is the same
 shape as the model's output and is therefore directly usable both as ground
 truth for replay and as a few-shot example.
+
+**Amended by
+[ADR-0008](0008-what-matters-is-prose-with-a-cached-extraction.md).** The
+permutation contract is unchanged. What changed is that one input to ranking —
+the user's own What Matters document — is prose, and only the model can turn
+prose into the structure the deterministic ranker needs. That extraction is
+cached, so a fallback-only run ranks against the last understood version of
+those priorities rather than against none. "Always produces a Daily Agenda"
+still holds without any engine at all.
