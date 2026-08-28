@@ -13,25 +13,25 @@ void main() {
   group('validateModelRanking', () {
     test('a valid permutation is used verbatim', () {
       final result = validateModelRanking(
-        response: '["d", "b", "a", "c"]',
+        response: '[4, 2, 1, 3]',
         fallbackRankedItems: fallbackOrder,
       );
 
       expect(result?.map((i) => i.id), ['d', 'b', 'a', 'c']);
     });
 
-    test('a hallucinated id is dropped, not inserted', () {
+    test('a number that names no item is dropped, not inserted', () {
       final result = validateModelRanking(
-        response: '["d", "zzz", "b", "a", "c"]',
+        response: '[4, 99, 2, 1, 3]',
         fallbackRankedItems: fallbackOrder,
       );
 
       expect(result?.map((i) => i.id), ['d', 'b', 'a', 'c']);
     });
 
-    test('ids missing from the response are appended in fallback order', () {
+    test('items missing from the response are appended in fallback order', () {
       final result = validateModelRanking(
-        response: '["c", "a"]',
+        response: '[3, 1]',
         fallbackRankedItems: fallbackOrder,
       );
 
@@ -39,9 +39,9 @@ void main() {
       expect(result?.map((i) => i.id), ['c', 'a', 'b', 'd']);
     });
 
-    test('a duplicate id in the response counts once', () {
+    test('a duplicate number in the response counts once', () {
       final result = validateModelRanking(
-        response: '["a", "a", "b", "c", "d"]',
+        response: '[1, 1, 2, 3, 4]',
         fallbackRankedItems: fallbackOrder,
       );
 
@@ -57,19 +57,19 @@ void main() {
       expect(result, isNull);
     });
 
-    test('valid JSON that is not a list of strings is discarded', () {
+    test('valid JSON that is not a list of numbers is discarded', () {
       final result = validateModelRanking(
-        response: '{"order": ["a", "b"]}',
+        response: '{"order": [1, 2]}',
         fallbackRankedItems: fallbackOrder,
       );
 
       expect(result, isNull);
     });
 
-    test('fewer than half the candidate ids recognised discards it all', () {
+    test('fewer than half the candidates recognised discards it all', () {
       // Only 1 of 4 recognised -- below half.
       final result = validateModelRanking(
-        response: '["a", "zzz", "yyy", "xxx"]',
+        response: '[1, 97, 98, 99]',
         fallbackRankedItems: fallbackOrder,
       );
 
@@ -78,7 +78,7 @@ void main() {
 
     test('exactly half recognised is enough to keep', () {
       final result = validateModelRanking(
-        response: '["c", "a"]',
+        response: '[3, 1]',
         fallbackRankedItems: fallbackOrder,
       );
 
@@ -88,7 +88,7 @@ void main() {
 
     test('a fenced JSON block is unwrapped before parsing', () {
       final result = validateModelRanking(
-        response: '```json\n["d", "c", "b", "a"]\n```',
+        response: '```json\n[4, 3, 2, 1]\n```',
         fallbackRankedItems: fallbackOrder,
       );
 
@@ -106,7 +106,7 @@ void main() {
 
     test('the result is always the same length as the fallback order', () {
       final result = validateModelRanking(
-        response: '["a", "b"]',
+        response: '[1, 2]',
         fallbackRankedItems: fallbackOrder,
       );
 
@@ -123,6 +123,19 @@ void main() {
 
       expect(prompt, startsWith('Rank these.'));
       expect(prompt, contains('[]'));
+    });
+  });
+
+  group('numbers outside the supplied range', () {
+    test('zero and negatives name no item and are dropped', () {
+      // 1-based numbering: a naive `n - 1` would make 0 index the last item
+      // and negatives wrap. Both must simply not match.
+      final result = validateModelRanking(
+        response: '[0, -1, 4, 3, 2, 1]',
+        fallbackRankedItems: fallbackOrder,
+      );
+
+      expect(result?.map((i) => i.id), ['d', 'c', 'b', 'a']);
     });
   });
 }

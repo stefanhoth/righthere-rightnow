@@ -152,8 +152,11 @@ void main() {
 
   test('a valid model ranking is applied and persisted', () async {
     final ids = fallbackResult.agenda.items.map((i) => i.id).toList().reversed;
+    final reversedNumbers = [
+      for (var n = fallbackResult.agenda.items.length; n >= 1; n--) n,
+    ];
     final reranker = ModelReranker(
-      engine: _FakeInferenceEngine(response: jsonEncode(ids.toList())),
+      engine: _FakeInferenceEngine(response: jsonEncode(reversedNumbers)),
       database: database,
     );
 
@@ -232,17 +235,18 @@ void main() {
     },
   );
 
-  test('the ranking answer is given room for every id', () async {
-    // ML Kit defaults to 256 output tokens when no bound is passed, which
-    // truncates a 25-item permutation mid-array. The bound has to scale with
-    // the number of items, not be a constant.
-    expect(rankingMaxOutputTokens(25), greaterThan(256));
+  test("the ranking answer fits inside ML Kit's hard ceiling", () async {
+    // "maxOutputTokens must be between 1 and 256" -- asking for more throws,
+    // so the bound is a clamp, not just a budget. Item numbers are what make
+    // 25 items fit inside 256 at all; 25 ids would not.
+    expect(rankingMaxOutputTokens(25), lessThanOrEqualTo(256));
     expect(rankingMaxOutputTokens(25), greaterThan(rankingMaxOutputTokens(5)));
+    expect(rankingMaxOutputTokens(500), 256);
   });
 
   test('an unusable answer is kept, so it can be diagnosed', () async {
     final reranker = ModelReranker(
-      engine: _FakeInferenceEngine(response: '["td:1", "td:2'),
+      engine: _FakeInferenceEngine(response: '[1, 2'),
       database: database,
     );
 
@@ -253,7 +257,7 @@ void main() {
       isA<InferenceFailed<BriefingRunResult>>().having(
         (outcome) => outcome.detail,
         'detail',
-        '["td:1", "td:2',
+        '[1, 2',
       ),
     );
   });

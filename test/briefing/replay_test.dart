@@ -125,7 +125,7 @@ void main() {
       producedRank: 1,
     );
     final harness = ReplayHarness(
-      engine: _FakeInferenceEngine(responses: ['["a", "b"]']),
+      engine: _FakeInferenceEngine(responses: ['[1, 2]']),
       database: database,
     );
 
@@ -161,7 +161,7 @@ void main() {
       producedRank: 1,
     );
     final harness = ReplayHarness(
-      engine: _FakeInferenceEngine(responses: ['["b", "a"]']),
+      engine: _FakeInferenceEngine(responses: ['[2, 1]']),
       database: database,
     );
 
@@ -189,7 +189,7 @@ void main() {
       producedRank: 0,
     );
     final harness = ReplayHarness(
-      engine: _FakeInferenceEngine(responses: ['["a"]']),
+      engine: _FakeInferenceEngine(responses: ['[1]']),
       database: database,
     );
 
@@ -229,7 +229,7 @@ void main() {
       producedRank: 0,
     );
     final harness = ReplayHarness(
-      engine: _FakeInferenceEngine(responses: ['["a"]']),
+      engine: _FakeInferenceEngine(responses: ['[1]']),
       database: database,
     );
 
@@ -253,7 +253,7 @@ void main() {
           // No correctedRank.
         );
         final harness = ReplayHarness(
-          engine: _FakeInferenceEngine(responses: ['["a"]']),
+          engine: _FakeInferenceEngine(responses: ['[1]']),
           database: database,
         );
 
@@ -290,7 +290,7 @@ void main() {
         producedRank: 0,
       );
       final harness = ReplayHarness(
-        engine: _FakeInferenceEngine(responses: ['["a", "b"]', '["c"]']),
+        engine: _FakeInferenceEngine(responses: ['[1, 2]', '[3]']),
         database: database,
       );
 

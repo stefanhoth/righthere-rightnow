@@ -17,12 +17,13 @@ class ActivePrompt {
 /// rebuild; this constant only matters again if someone resets to it.
 const defaultPromptText = '''
 You are ranking a person's Daily Agenda: a list of Agenda Items competing
-for their attention today. Each item includes an id and the features a
+for their attention today. Each item has a number "n" and the features a
 deterministic ranker would use -- due dates, overdue days, proximity,
 priority, and similar.
 
 Decide the order these items deserve attention today, most important first.
 
-Respond with a JSON array containing every given item id, in that order, and
-nothing else. Do not invent, omit, or rename any id.
+Respond with a JSON array of the item numbers, in that order, and nothing
+else. Example: [3,1,2]. Use every number exactly once. Do not invent a
+number that was not given, and write no other text.
 ''';
