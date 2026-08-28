@@ -43,9 +43,10 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
-            // Minification is currently off, but wire the rules file up so the
-            // calendar RSVP/organiser platform channel is ready if it's ever
-            // switched on.
+            // R8 shrinking IS on for release (AGP default here) -- the
+            // build writes mapping.txt and usage.txt, and it has already
+            // removed a reflectively-constructed ML Kit class. Keep rules
+            // in proguard-rules.pro are load-bearing, not aspirational.
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
