@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'dart:developer' as developer;
 
+import 'package:flutter/foundation.dart';
 import 'package:righthere_rightnow/briefing/briefing_run_orchestrator.dart';
 import 'package:righthere_rightnow/briefing/providers.dart';
 import 'package:righthere_rightnow/data/providers.dart';
@@ -82,7 +82,11 @@ class DailyAgendaController extends _$DailyAgendaController {
         'failed: ${failure.name}${detail == null ? '' : ' <<$detail>>'}',
     };
     if (detail != null) {
-      developer.log('$what $detail', name: 'DailyAgendaController');
+      // debugPrint, not developer.log: the latter never reached logcat in a
+      // release build, which is where these failures actually happen. Only
+      // the outcome is logged -- never the prompt, which carries calendar
+      // and task content.
+      debugPrint('DailyAgendaController: $what $detail');
     }
   }
 
