@@ -13,6 +13,8 @@ Several decisions depend on never shipping to Play — see
 
 ## Read before writing code
 
+0. [docs/VISION.md](docs/VISION.md) — what the app is for and what it refuses
+   to do. Two named failures justify everything else.
 1. [CONTEXT.md](CONTEXT.md) — the glossary. Use this vocabulary everywhere:
    code, types, comments, commit messages, PR titles.
 2. [docs/adr/](docs/adr/) — decisions that look arbitrary without their
@@ -75,7 +77,10 @@ Never report these as working on the basis of a green CI run.
 ## Non-negotiables
 
 - **The deterministic fallback ranker always works.** The model is never the
-  only path to a Daily Agenda.
+  only path to a Daily Agenda. Amended by
+  [ADR-0008](docs/adr/0008-what-matters-is-prose-with-a-cached-extraction.md):
+  reading a *changed* What Matters document needs the model. Without it the app
+  ranks against the last understood version — never against nothing.
 - **Briefing Run snapshots persist from the first run.** Not backfillable.
 - **`lib/domain/` imports nothing but `dart:` and `package:meta`.**
 

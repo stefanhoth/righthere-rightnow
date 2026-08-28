@@ -16,6 +16,7 @@ this order, before writing any code:**
 
 | Read | Why |
 |------|-----|
+| [docs/VISION.md](docs/VISION.md) | What the app is for, the two failures it exists to fix, and what it deliberately will not do. |
 | [CONTEXT.md](CONTEXT.md) | The domain glossary. Use this vocabulary in all code, types, comments and commit messages. |
 | [docs/adr/](docs/adr/) | Four decisions that look arbitrary without their reasoning. |
 | [docs/plan/](docs/plan/README.md) | The work, as ordered tasks with acceptance criteria. |
@@ -42,7 +43,10 @@ plausible-looking, wrong code.
 Load-bearing, and easy to skip under schedule pressure:
 
 - **The deterministic fallback ranker always works.** The model is never the
-  only path to a Daily Agenda. See [ADR-0003](docs/adr/0003-llm-ranks-under-a-permutation-contract.md).
+  only path to a Daily Agenda. See [ADR-0003](docs/adr/0003-llm-ranks-under-a-permutation-contract.md),
+  and [ADR-0008](docs/adr/0008-what-matters-is-prose-with-a-cached-extraction.md)
+  for the one thing that does need the model: reading a *changed* What Matters
+  document. Without it the app ranks against the last understood version.
 - **Briefing Run snapshots persist from the very first run.** This data cannot
   be backfilled.
 - **`lib/domain/` imports nothing but `dart:` and `package:meta`.** No Flutter,
@@ -98,6 +102,12 @@ removed them, and on-device inference does not run on emulators.
 
 ## Status
 
-Design and planning complete. Implementation has not started — begin with
-[Milestone 0](docs/plan/milestone-0-spikes.md), whose two spikes resolve
-assumptions that would otherwise invalidate later work.
+Milestones 1, 2 and 3 are merged: the Daily Agenda, the morning Briefing Run
+with its Focus Pull notification, and the model ranker with drag-to-reorder
+feedback and a replay harness.
+
+**Merged and tested is not the same as proven on the Pixel.** No Briefing Run
+is known to have recorded `rankedBy == model`, and both
+[Milestone 0](docs/plan/milestone-0-spikes.md) spikes are still unrun.
+[Milestone 4](docs/plan/milestone-4-what-matters.md) starts by fixing that,
+then brings the user's own priorities into the ranking.
