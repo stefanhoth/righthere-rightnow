@@ -1,4 +1,4 @@
-# Right Here, Right Now
+# RightHere RightNow
 
 A personal morning briefing for Android. It reads your calendar and your task
 manager, ranks everything competing for your attention today into one list, and
