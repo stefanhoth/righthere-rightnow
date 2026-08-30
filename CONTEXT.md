@@ -1,4 +1,4 @@
-# Right Here, Right Now
+# RightHere RightNow
 
 A personal morning briefing. It gathers what the day demands from several
 sources, and presents one ranked list. You then start the day without checking
