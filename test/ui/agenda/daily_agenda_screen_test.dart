@@ -19,12 +19,33 @@ import 'package:righthere_rightnow/domain/task_due.dart';
 import 'package:righthere_rightnow/inference/inference_engine.dart';
 import 'package:righthere_rightnow/ui/agenda/agenda_controller.dart';
 import 'package:righthere_rightnow/ui/agenda/daily_agenda_screen.dart';
+import 'package:righthere_rightnow/ui/agenda/source_opener.dart';
 
 class _MockCalendarReader extends Mock implements CalendarReader {}
 
 class _MockTodoistClient extends Mock implements TodoistClient {}
 
 class _MockTodoistTokenStorage extends Mock implements TodoistTokenStorage {}
+
+/// Records what the screen asked to open instead of leaving the app, which
+/// no widget test can follow.
+class _RecordingSourceOpener implements SourceOpener {
+  final opened = <AgendaItem>[];
+  final openedUrls = <Uri>[];
+  bool succeeds = true;
+
+  @override
+  Future<bool> open(AgendaItem item) async {
+    opened.add(item);
+    return succeeds;
+  }
+
+  @override
+  Future<bool> openUrl(Uri url) async {
+    openedUrls.add(url);
+    return succeeds;
+  }
+}
 
 /// Resolves synchronously, unlike the real engine's platform-channel probe --
 /// that probe's own internal timeout leaves a pending Timer past the end of
@@ -90,6 +111,7 @@ Future<void> _pumpAgenda(
   int? notificationLaunchRunId,
   DateTime? lastBriefingRunCompletedAt,
   AppDatabase? database,
+  SourceOpener? sourceOpener,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
@@ -105,6 +127,8 @@ Future<void> _pumpAgenda(
         ),
         inferenceEngineProvider.overrideWithValue(_FakeUnavailableEngine()),
         if (database != null) appDatabaseProvider.overrideWithValue(database),
+        if (sourceOpener != null)
+          sourceOpenerProvider.overrideWithValue(sourceOpener),
       ],
       child: const MaterialApp(home: DailyAgendaScreen()),
     ),
@@ -526,5 +550,101 @@ void main() {
 
     expect(find.byKey(const Key('allDayHeader')), findsOneWidget);
     expect(find.text('Company offsite'), findsOneWidget);
+  });
+
+  testWidgets('tapping a Commitment opens it where it came from', (
+    tester,
+  ) async {
+    final commitment = _commitment(id: 'cal:4711:1756540800000');
+    final opener = _RecordingSourceOpener();
+    final result = BriefingRunResult(
+      runId: 1,
+      candidateItems: const [],
+      agenda: RankedAgenda(items: [commitment], rankedBy: RankedBy.fallback),
+      allDayCommitments: const [],
+      startedAt: DateTime(2026, 8, 26, 9),
+      completedAt: DateTime(2026, 8, 26, 9, 0, 5),
+    );
+
+    await _pumpAgenda(tester, result, sourceOpener: opener);
+    await tester.tap(find.text('Standup'));
+    await tester.pumpAndSettle();
+
+    expect(opener.opened, [commitment]);
+  });
+
+  testWidgets('tapping a Task opens it where it came from', (tester) async {
+    const task = Task(
+      id: 'td:6X4Vw2',
+      title: 'File taxes',
+      priority: Priority.p1,
+      isRecurring: false,
+    );
+    final opener = _RecordingSourceOpener();
+    final result = BriefingRunResult(
+      runId: 1,
+      candidateItems: const [],
+      agenda: const RankedAgenda(items: [task], rankedBy: RankedBy.fallback),
+      allDayCommitments: const [],
+      startedAt: DateTime(2026, 8, 26, 9),
+      completedAt: DateTime(2026, 8, 26, 9, 0, 5),
+    );
+
+    await _pumpAgenda(tester, result, sourceOpener: opener);
+    await tester.tap(find.text('File taxes'));
+    await tester.pumpAndSettle();
+
+    expect(opener.opened, [task]);
+  });
+
+  testWidgets('says so when nothing on the device can open the source', (
+    tester,
+  ) async {
+    final opener = _RecordingSourceOpener()..succeeds = false;
+    final result = BriefingRunResult(
+      runId: 1,
+      candidateItems: const [],
+      agenda: RankedAgenda(
+        items: [_commitment(id: 'cal:4711:1756540800000')],
+        rankedBy: RankedBy.fallback,
+      ),
+      allDayCommitments: const [],
+      startedAt: DateTime(2026, 8, 26, 9),
+      completedAt: DateTime(2026, 8, 26, 9, 0, 5),
+    );
+
+    await _pumpAgenda(tester, result, sourceOpener: opener);
+    await tester.tap(find.text('Standup'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('couldNotOpenSourceSnackBar')), findsOneWidget);
+  });
+
+  testWidgets("a Markdown link in a Task's title opens separately", (
+    tester,
+  ) async {
+    const task = Task(
+      id: 'td:6X4Vw2',
+      title: '[Buy a sharpener](https://example.com/sharpener)',
+      priority: Priority.p1,
+      isRecurring: false,
+    );
+    final opener = _RecordingSourceOpener();
+    final result = BriefingRunResult(
+      runId: 1,
+      candidateItems: const [],
+      agenda: const RankedAgenda(items: [task], rankedBy: RankedBy.fallback),
+      allDayCommitments: const [],
+      startedAt: DateTime(2026, 8, 26, 9),
+      completedAt: DateTime(2026, 8, 26, 9, 0, 5),
+    );
+
+    await _pumpAgenda(tester, result, sourceOpener: opener);
+    await tester.tap(find.byKey(const Key('openTitleLinkButton')));
+    await tester.pumpAndSettle();
+
+    // The link button opens the URL; the row itself still goes to Todoist.
+    expect(opener.openedUrls, [Uri.parse('https://example.com/sharpener')]);
+    expect(opener.opened, isEmpty);
   });
 }

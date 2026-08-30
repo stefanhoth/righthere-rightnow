@@ -11,10 +11,10 @@ import 'package:righthere_rightnow/domain/agenda_item.dart';
 import 'package:righthere_rightnow/ui/agenda/agenda_controller.dart';
 import 'package:righthere_rightnow/ui/agenda/agenda_pill.dart';
 import 'package:righthere_rightnow/ui/agenda/inference_status_controller.dart';
+import 'package:righthere_rightnow/ui/agenda/source_link.dart';
 import 'package:righthere_rightnow/ui/agenda/task_title.dart';
 import 'package:righthere_rightnow/ui/settings/settings_screen.dart';
 import 'package:simple_icons/simple_icons.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class DailyAgendaScreen extends ConsumerWidget {
   const DailyAgendaScreen({super.key});
@@ -510,13 +510,13 @@ const _calendarMark = Color(0xFF534AB7);
 const _todoistTint = Color(0xFFE1F5EE);
 const _todoistMark = Color(0xFF0F6E56);
 
-class _AgendaTile extends StatelessWidget {
+class _AgendaTile extends ConsumerWidget {
   const _AgendaTile({required super.key, required this.item});
 
   final AgendaItem item;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final now = DateTime.now();
     final pill = agendaPillFor(item, now);
     final parsedTitle = switch (item) {
@@ -532,7 +532,6 @@ class _AgendaTile extends StatelessWidget {
       Task() => (_todoistTint, _todoistMark, SimpleIcons.todoist),
     };
     final secondary = _secondaryText(pill != null);
-    final link = parsedTitle?.link;
 
     return ListTile(
       key: ValueKey(item.id),
@@ -546,38 +545,37 @@ class _AgendaTile extends StatelessWidget {
         ),
         child: Icon(icon, size: 18, color: mark),
       ),
-      title: _title(context, parsedTitle),
+      title: Text(parsedTitle?.text ?? item.title),
       subtitle: (pill == null && secondary == null)
           ? null
           : _Subtitle(pill: pill, text: secondary),
-      trailing: _trailing(),
-      onTap: link == null ? null : () => launchUrl(link),
+      trailing: _trailing(context, ref, parsedTitle?.link),
+      // Tapping the row hands the item back to the app it came from, which
+      // is the only place it can be changed -- this app never writes to a
+      // source. Null when the id predates the format that would address it.
+      onTap: sourceLinkFor(item) == null
+          ? null
+          : () => _openInSource(context, ref),
     );
   }
 
-  Widget _title(BuildContext context, ParsedTaskTitle? parsedTitle) {
-    if (parsedTitle == null) {
-      return Text(item.title);
+  Future<void> _openInSource(BuildContext context, WidgetRef ref) async {
+    final opened = await ref.read(sourceOpenerProvider).open(item);
+    if (opened || !context.mounted) {
+      return;
     }
-    if (parsedTitle.link == null) {
-      return Text(parsedTitle.text);
-    }
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Flexible(child: Text(parsedTitle.text)),
-        const SizedBox(width: 4),
-        Padding(
-          padding: const EdgeInsets.only(top: 2),
-          child: Icon(
-            Icons.open_in_new,
-            size: 14,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
+    final where = switch (item) {
+      Commitment() => 'a calendar app',
+      Task() => 'Todoist or a browser',
+    };
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          key: const Key('couldNotOpenSourceSnackBar'),
+          content: Text('Nothing on this device could open it in $where.'),
         ),
-      ],
-    );
+      );
   }
 
   String? _secondaryText(bool hasPill) {
@@ -588,17 +586,37 @@ class _AgendaTile extends StatelessWidget {
     };
   }
 
-  Widget? _trailing() {
+  /// The row's own actions, distinct from tapping it: the conference to join,
+  /// and the URL a Task's Markdown title pointed at. Both used to be tiny
+  /// hints inside the row; they are buttons now that the row itself is
+  /// spoken for by "open where this came from".
+  Widget? _trailing(BuildContext context, WidgetRef ref, Uri? titleLink) {
     final current = item;
-    if (current is Commitment && current.conferenceUrl != null) {
-      return IconButton(
-        key: const Key('joinConferenceButton'),
-        icon: const Icon(Icons.videocam),
-        tooltip: 'Join',
-        onPressed: () => launchUrl(Uri.parse(current.conferenceUrl!)),
-      );
+    final buttons = <Widget>[
+      if (titleLink != null)
+        IconButton(
+          key: const Key('openTitleLinkButton'),
+          icon: const Icon(Icons.open_in_new),
+          tooltip: 'Open link',
+          onPressed: () =>
+              unawaited(ref.read(sourceOpenerProvider).openUrl(titleLink)),
+        ),
+      if (current is Commitment && current.conferenceUrl != null)
+        IconButton(
+          key: const Key('joinConferenceButton'),
+          icon: const Icon(Icons.videocam),
+          tooltip: 'Join',
+          onPressed: () => unawaited(
+            ref
+                .read(sourceOpenerProvider)
+                .openUrl(Uri.parse(current.conferenceUrl!)),
+          ),
+        ),
+    ];
+    if (buttons.isEmpty) {
+      return null;
     }
-    return null;
+    return Row(mainAxisSize: MainAxisSize.min, children: buttons);
   }
 
   String _durationLabel(Commitment commitment) {
