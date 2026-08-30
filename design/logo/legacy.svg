@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108">
+  <!-- The pre-API-26 icon: the same mark, but composited onto its own rounded
+       square, since a legacy launcher applies no mask of its own. -->
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="108" y2="108" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5B4FD6"/>
+      <stop offset="1" stop-color="#241E63"/>
+    </linearGradient>
+    <clipPath id="squircle"><rect width="108" height="108" rx="24"/></clipPath>
+  </defs>
+  <g clip-path="url(#squircle)">
+    <rect width="108" height="108" fill="url(#g)"/>
+    <rect x="26" y="22" width="56" height="13" rx="6.5" fill="#FFFFFF" fill-opacity="0.62"/>
+    <rect x="34" y="41" width="40" height="13" rx="6.5" fill="#FFFFFF" fill-opacity="0.85"/>
+    <path d="M42 60 h24 a6.5 6.5 0 0 1 0 13 h-1 l-11 15 -11 -15 h-1 a6.5 6.5 0 0 1 0 -13 z"
+          fill="#FFC24D"/>
+  </g>
+</svg>

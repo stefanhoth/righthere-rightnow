@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108">
+  <!-- The themed-icon layer (Android 13+). One flat colour only, because the system
+       recolours it, so the amber accent and the opacity ramp cannot survive. -->
+  <!-- Scaled about the centre so the whole mark clears the adaptive icon's
+       66dp safe circle. Drawn at full size and shrunk here, rather than drawn
+       small, so legacy.svg can reuse the identical path data at 1:1. -->
+  <g transform="translate(54 54) scale(0.84) translate(-54 -54)">
+    <rect x="26" y="22" width="56" height="13" rx="6.5" fill="#FFFFFF"/>
+    <rect x="34" y="41" width="40" height="13" rx="6.5" fill="#FFFFFF"/>
+    <path d="M42 60 h24 a6.5 6.5 0 0 1 0 13 h-1 l-11 15 -11 -15 h-1 a6.5 6.5 0 0 1 0 -13 z"
+          fill="#FFFFFF"/>
+  </g>
+</svg>

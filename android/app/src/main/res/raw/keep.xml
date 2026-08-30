@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- R8's resource shrinker only sees resources named in code or XML. The
+     notification's small icon is named in a Dart string
+     (focus_pull_notification.dart), which is invisible to it, so without this
+     the drawable is stripped from the release APK and
+     FlutterLocalNotificationsPlugin.initialize throws invalid_icon before
+     main() reaches runApp: the app starts and never draws.
+
+     Debug builds do not shrink, so this only ever fails in release. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/ic_notification" />
