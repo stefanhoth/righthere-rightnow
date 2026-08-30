@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The adaptive icon's background layer. A flat colour rather than a
+         drawable: the rings carry the identity, and the launcher fills the
+         whole masked shape with this. -->
+    <color name="ic_launcher_background">#241E63</color>
+</resources>

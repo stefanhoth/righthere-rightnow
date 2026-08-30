@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108">
+  <!-- The notification small icon, drawn separately and deliberately simpler.
+
+       Android renders this as a pure alpha mask at 24dp. The full four-ring
+       mark has 4-unit strokes and 4-unit gaps on this grid, which land under
+       one pixel each at that size and blur into a grey smudge. One ring
+       closing on one point keeps the idea and survives: a 10-unit stroke is
+       2.2px at 24dp. -->
+  <circle cx="54" cy="54" r="34" fill="none" stroke="#FFFFFF" stroke-width="10"/>
+  <circle cx="54" cy="54" r="10" fill="#FFFFFF"/>
+</svg>
