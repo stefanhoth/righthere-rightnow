@@ -10,7 +10,7 @@ import 'package:righthere_rightnow/briefing/staleness.dart';
 import 'package:righthere_rightnow/domain/agenda_item.dart';
 import 'package:righthere_rightnow/ui/agenda/agenda_controller.dart';
 import 'package:righthere_rightnow/ui/agenda/agenda_pill.dart';
-import 'package:righthere_rightnow/ui/agenda/inference_status_controller.dart';
+import 'package:righthere_rightnow/ui/agenda/briefing_summary_sheet.dart';
 import 'package:righthere_rightnow/ui/agenda/source_link.dart';
 import 'package:righthere_rightnow/ui/agenda/task_title.dart';
 import 'package:righthere_rightnow/ui/settings/settings_screen.dart';
@@ -66,6 +66,11 @@ class DailyAgendaScreen extends ConsumerWidget {
               },
             ),
           ),
+          // Laid out as the last row rather than as Scaffold.bottomSheet:
+          // a Scaffold does not inset its body for one, so the bar would
+          // cover the lowest-ranked Agenda Item.
+          if (agendaState case AsyncData(:final value))
+            BriefingSummaryBar(result: value),
         ],
       ),
     );
@@ -176,12 +181,12 @@ class _AgendaBody extends ConsumerWidget {
     final isEmpty = rankedItems.isEmpty && result.allDayCommitments.isEmpty;
     final launchRunId = ref.watch(notificationLaunchRunIdProvider).value;
 
+    // The framing line, what the model did, when the run finished and the
+    // rating buttons all used to live here, four rows above the first Agenda
+    // Item. They are in the BriefingSummaryBar at the foot of the screen now:
+    // commentary about the Daily Agenda, not part of it.
     final header = Column(
       children: [
-        if (result.framingLine != null) _FramingLine(text: result.framingLine!),
-        const _InferenceStatusLine(),
-        _LastRunBanner(result: result),
-        const _RatingButtons(),
         if (launchRunId != null) const _OpenedFromNotificationBanner(),
         if (result.isPartial) _PartialDataBanner(message: result.error!),
         if (result.allDayCommitments.isNotEmpty)
@@ -273,132 +278,6 @@ class _DismissBackground extends StatelessWidget {
           const SizedBox(width: 8),
           Text('Nothing to do', style: Theme.of(context).textTheme.labelLarge),
         ],
-      ),
-    );
-  }
-}
-
-class _RatingButtons extends ConsumerWidget {
-  const _RatingButtons();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Row(
-      children: [
-        const Spacer(),
-        IconButton(
-          key: const Key('thumbsUpButton'),
-          icon: const Icon(Icons.thumb_up_outlined),
-          tooltip: 'Good ranking',
-          onPressed: () => _rate(context, ref, 1),
-        ),
-        IconButton(
-          key: const Key('thumbsDownButton'),
-          icon: const Icon(Icons.thumb_down_outlined),
-          tooltip: "Not worth reordering, but wasn't great",
-          onPressed: () => _rate(context, ref, -1),
-        ),
-      ],
-    );
-  }
-
-  Future<void> _rate(BuildContext context, WidgetRef ref, int rating) async {
-    await ref.read(dailyAgendaControllerProvider.notifier).rate(rating);
-    if (context.mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Noted.')));
-    }
-  }
-}
-
-class _FramingLine extends StatelessWidget {
-  const _FramingLine({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      key: const Key('framingLine'),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      child: Text(
-        text,
-        key: const Key('framingLineText'),
-        // Three lines, not one. Task 3.4 called for a hard cap and truncation
-        // over wrapping, and on the device that showed about a third of the
-        // sentence -- useless. The cap now lives where it belongs, on
-        // generation (framingLineMaxOutputTokens), so the screen can afford
-        // to show what it asked for.
-        maxLines: 3,
-        overflow: TextOverflow.ellipsis,
-        style: Theme.of(context).textTheme.titleMedium,
-      ),
-    );
-  }
-}
-
-/// Says what the model is doing, or what it did.
-///
-/// Inference runs behind an agenda that is already on screen (ADR-0006), so
-/// without this the screen looks identical whether the model is thinking,
-/// finished, or was never reachable at all.
-class _InferenceStatusLine extends ConsumerWidget {
-  const _InferenceStatusLine();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final status = ref.watch(inferenceStatusControllerProvider);
-    final summary = status.summary;
-    if (summary == null) {
-      return const SizedBox.shrink();
-    }
-
-    final style = Theme.of(context).textTheme.bodySmall;
-    return Padding(
-      key: const Key('inferenceStatus'),
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (status.isRunning) ...[
-            SizedBox(
-              width: 12,
-              height: 12,
-              child: CircularProgressIndicator(
-                key: const Key('inferenceSpinner'),
-                strokeWidth: 2,
-                color: style?.color,
-              ),
-            ),
-            const SizedBox(width: 8),
-          ],
-          Flexible(
-            child: Text(
-              summary,
-              key: const Key('inferenceStatusText'),
-              style: style,
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LastRunBanner extends StatelessWidget {
-  const _LastRunBanner({required this.result});
-
-  final BriefingRunResult result;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-      child: Text(
-        'Last updated ${DateFormat.jm().format(result.completedAt)}',
-        key: const Key('lastRunTime'),
-        style: Theme.of(context).textTheme.bodySmall,
       ),
     );
   }

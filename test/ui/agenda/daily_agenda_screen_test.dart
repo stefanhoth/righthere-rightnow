@@ -136,6 +136,13 @@ Future<void> _pumpAgenda(
   await tester.pumpAndSettle();
 }
 
+/// Opens the Briefing Run summary, which is collapsed to a single bar at
+/// the foot of the screen until tapped.
+Future<void> _openSummarySheet(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('briefingSummaryBar')));
+  await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets('shows a populated list of ranked items', (tester) async {
     final commitment = _commitment(id: 'cal:standup');
@@ -161,6 +168,7 @@ void main() {
 
     expect(find.text('Standup'), findsOneWidget);
     expect(find.text('File taxes'), findsOneWidget);
+    await _openSummarySheet(tester);
     expect(find.byKey(const Key('lastRunTime')), findsOneWidget);
   });
 
@@ -445,6 +453,7 @@ void main() {
     );
 
     await _pumpAgenda(tester, result, database: database);
+    await _openSummarySheet(tester);
     await tester.tap(find.byKey(const Key('thumbsUpButton')));
     await tester.pumpAndSettle();
 
@@ -467,10 +476,19 @@ void main() {
 
     await _pumpAgenda(tester, result);
 
+    // The collapsed bar carries it, so the day's framing is readable
+    // without opening anything.
+    expect(
+      tester.widget<Text>(find.byKey(const Key('briefingSummaryBarText'))).data,
+      'Heavy meeting day -- protect the morning.',
+    );
+
+    await _openSummarySheet(tester);
+
     expect(find.byKey(const Key('framingLine')), findsOneWidget);
     expect(
-      find.text('Heavy meeting day -- protect the morning.'),
-      findsOneWidget,
+      tester.widget<Text>(find.byKey(const Key('framingLineText'))).data,
+      'Heavy meeting day -- protect the morning.',
     );
   });
 
@@ -485,6 +503,7 @@ void main() {
     );
 
     await _pumpAgenda(tester, result);
+    await _openSummarySheet(tester);
 
     expect(find.byKey(const Key('framingLine')), findsNothing);
   });
@@ -646,5 +665,87 @@ void main() {
     // The link button opens the URL; the row itself still goes to Todoist.
     expect(opener.openedUrls, [Uri.parse('https://example.com/sharpener')]);
     expect(opener.opened, isEmpty);
+  });
+
+  testWidgets('the summary stays collapsed until it is asked for', (
+    tester,
+  ) async {
+    final result = BriefingRunResult(
+      runId: 1,
+      candidateItems: const [],
+      agenda: const RankedAgenda(items: [], rankedBy: RankedBy.fallback),
+      allDayCommitments: const [],
+      startedAt: DateTime(2026, 8, 26, 9),
+      completedAt: DateTime(2026, 8, 26, 9, 0, 5),
+    );
+
+    await _pumpAgenda(tester, result);
+
+    expect(find.byKey(const Key('briefingSummaryBar')), findsOneWidget);
+    expect(find.byKey(const Key('briefingSummarySheet')), findsNothing);
+    expect(find.byKey(const Key('thumbsUpButton')), findsNothing);
+    expect(find.byKey(const Key('lastRunTime')), findsNothing);
+  });
+
+  testWidgets('swiping the collapsed bar up opens the summary', (tester) async {
+    final result = BriefingRunResult(
+      runId: 1,
+      candidateItems: const [],
+      agenda: const RankedAgenda(items: [], rankedBy: RankedBy.fallback),
+      allDayCommitments: const [],
+      startedAt: DateTime(2026, 8, 26, 9),
+      completedAt: DateTime(2026, 8, 26, 9, 0, 5),
+    );
+
+    await _pumpAgenda(tester, result);
+    await tester.fling(
+      find.byKey(const Key('briefingSummaryBar')),
+      const Offset(0, -80),
+      800,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('briefingSummarySheet')), findsOneWidget);
+  });
+
+  testWidgets('swiping the collapsed bar down leaves it alone', (tester) async {
+    final result = BriefingRunResult(
+      runId: 1,
+      candidateItems: const [],
+      agenda: const RankedAgenda(items: [], rankedBy: RankedBy.fallback),
+      allDayCommitments: const [],
+      startedAt: DateTime(2026, 8, 26, 9),
+      completedAt: DateTime(2026, 8, 26, 9, 0, 5),
+    );
+
+    await _pumpAgenda(tester, result);
+    await tester.fling(
+      find.byKey(const Key('briefingSummaryBar')),
+      const Offset(0, 80),
+      800,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('briefingSummarySheet')), findsNothing);
+  });
+
+  testWidgets('tapping the grip closes the summary again', (tester) async {
+    final result = BriefingRunResult(
+      runId: 1,
+      candidateItems: const [],
+      agenda: const RankedAgenda(items: [], rankedBy: RankedBy.fallback),
+      allDayCommitments: const [],
+      startedAt: DateTime(2026, 8, 26, 9),
+      completedAt: DateTime(2026, 8, 26, 9, 0, 5),
+    );
+
+    await _pumpAgenda(tester, result);
+    await _openSummarySheet(tester);
+    expect(find.byKey(const Key('briefingSummarySheet')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('briefingSummarySheetHandle')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('briefingSummarySheet')), findsNothing);
   });
 }
