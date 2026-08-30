@@ -1,18 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108">
-  <!-- The mark, drawn in the adaptive-icon 108dp grid so the foreground layer
-       and the legacy icon share one source.
+  <!-- The adaptive icon's foreground layer, drawn on the 108dp grid.
+       Concentric rings closing on a single point: everything the day is
+       made of, narrowing to the one thing at the centre.
 
-       Three bars narrowing onto a single amber point: the day's Agenda Items
-       funnelling down to the one thing that deserves attention. The point
-       doubles as a map pin ("right here"), and amber is the only saturated
-       colour, so at 48dp the eye lands where the app wants it to. -->
-  <!-- Scaled about the centre so the whole mark clears the adaptive icon's
-       66dp safe circle. Drawn at full size and shrunk here, rather than drawn
-       small, so legacy.svg can reuse the identical path data at 1:1. -->
-  <g transform="translate(54 54) scale(0.84) translate(-54 -54)">
-    <rect x="26" y="22" width="56" height="13" rx="6.5" fill="#FFFFFF" fill-opacity="0.62"/>
-    <rect x="34" y="41" width="40" height="13" rx="6.5" fill="#FFFFFF" fill-opacity="0.85"/>
-    <path d="M42 60 h24 a6.5 6.5 0 0 1 0 13 h-1 l-11 15 -11 -15 h-1 a6.5 6.5 0 0 1 0 -13 z"
-          fill="#FFC24D"/>
-  </g>
+       Nothing reaches past r=29, inside the 66dp safe circle (r=33), so no
+       launcher mask can clip it. -->
+  <circle cx="54" cy="54" r="27" fill="none" stroke="#FF00FF" stroke-width="4"/>
+  <circle cx="54" cy="54" r="19" fill="none" stroke="#00FFFF" stroke-width="4"/>
+  <circle cx="54" cy="54" r="11" fill="none" stroke="#2962FF" stroke-width="4"/>
+  <circle cx="54" cy="54" r="4" fill="#FFEA00"/>
 </svg>
