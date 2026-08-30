@@ -686,4 +686,66 @@ void main() {
     expect(find.byKey(const Key('thumbsUpButton')), findsNothing);
     expect(find.byKey(const Key('lastRunTime')), findsNothing);
   });
+
+  testWidgets('swiping the collapsed bar up opens the summary', (tester) async {
+    final result = BriefingRunResult(
+      runId: 1,
+      candidateItems: const [],
+      agenda: const RankedAgenda(items: [], rankedBy: RankedBy.fallback),
+      allDayCommitments: const [],
+      startedAt: DateTime(2026, 8, 26, 9),
+      completedAt: DateTime(2026, 8, 26, 9, 0, 5),
+    );
+
+    await _pumpAgenda(tester, result);
+    await tester.fling(
+      find.byKey(const Key('briefingSummaryBar')),
+      const Offset(0, -80),
+      800,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('briefingSummarySheet')), findsOneWidget);
+  });
+
+  testWidgets('swiping the collapsed bar down leaves it alone', (tester) async {
+    final result = BriefingRunResult(
+      runId: 1,
+      candidateItems: const [],
+      agenda: const RankedAgenda(items: [], rankedBy: RankedBy.fallback),
+      allDayCommitments: const [],
+      startedAt: DateTime(2026, 8, 26, 9),
+      completedAt: DateTime(2026, 8, 26, 9, 0, 5),
+    );
+
+    await _pumpAgenda(tester, result);
+    await tester.fling(
+      find.byKey(const Key('briefingSummaryBar')),
+      const Offset(0, 80),
+      800,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('briefingSummarySheet')), findsNothing);
+  });
+
+  testWidgets('tapping the grip closes the summary again', (tester) async {
+    final result = BriefingRunResult(
+      runId: 1,
+      candidateItems: const [],
+      agenda: const RankedAgenda(items: [], rankedBy: RankedBy.fallback),
+      allDayCommitments: const [],
+      startedAt: DateTime(2026, 8, 26, 9),
+      completedAt: DateTime(2026, 8, 26, 9, 0, 5),
+    );
+
+    await _pumpAgenda(tester, result);
+    await _openSummarySheet(tester);
+    expect(find.byKey(const Key('briefingSummarySheet')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('briefingSummarySheetHandle')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('briefingSummarySheet')), findsNothing);
+  });
 }

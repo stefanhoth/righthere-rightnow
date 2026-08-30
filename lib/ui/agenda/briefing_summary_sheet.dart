@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:righthere_rightnow/briefing/briefing_run_orchestrator.dart';
+import 'package:righthere_rightnow/briefing/inference_status.dart';
 import 'package:righthere_rightnow/ui/agenda/agenda_controller.dart';
 import 'package:righthere_rightnow/ui/agenda/inference_status_controller.dart';
 
@@ -34,6 +37,29 @@ class BriefingSummaryBar extends ConsumerWidget {
     // handle the expanded sheet shows. Lifting it onto its own elevation is
     // what separates it from the last Agenda Item behind it -- flush against
     // the list it read as a stray grey strip.
+    return Semantics(
+      button: true,
+      label: 'Open the run summary',
+      child: GestureDetector(
+        // A grip that only answers a tap is a lie. The sheet closes on a
+        // downward drag, so the bar opens on an upward one -- either gesture
+        // works in either direction.
+        onVerticalDragEnd: (details) {
+          if ((details.primaryVelocity ?? 0) < 0) {
+            unawaited(showBriefingSummarySheet(context, result));
+          }
+        },
+        child: _bar(context, theme, status, line),
+      ),
+    );
+  }
+
+  Widget _bar(
+    BuildContext context,
+    ThemeData theme,
+    InferenceStatus status,
+    String line,
+  ) {
     return Material(
       key: const Key('briefingSummaryBar'),
       color: theme.colorScheme.surfaceContainerHigh,
@@ -111,13 +137,16 @@ class _DragHandle extends StatelessWidget {
 
 /// Opens the expanded sheet. Separate from [BriefingSummaryBar] so anything
 /// else that wants the detail can ask for it.
+///
+/// Draws its own handle rather than passing `showDragHandle`, so the grip is
+/// literally the same widget the collapsed bar shows, and so tapping it can
+/// close the sheet.
 Future<void> showBriefingSummarySheet(
   BuildContext context,
   BriefingRunResult result,
 ) {
   return showModalBottomSheet<void>(
     context: context,
-    showDragHandle: true,
     builder: (_) => _BriefingSummarySheet(result: result),
   );
 }
@@ -140,6 +169,23 @@ class _BriefingSummarySheet extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Tapping the grip closes, mirroring the tap that opened it. The
+            // sheet already closes on a downward drag, so without this the
+            // two directions each accepted only one of the two gestures.
+            Semantics(
+              button: true,
+              label: 'Close the run summary',
+              child: GestureDetector(
+                key: const Key('briefingSummarySheetHandle'),
+                behavior: HitTestBehavior.opaque,
+                onTap: () => Navigator.of(context).maybePop(),
+                child: const SizedBox(
+                  height: 36,
+                  width: double.infinity,
+                  child: Center(child: _DragHandle()),
+                ),
+              ),
+            ),
             if (framingLine != null) _FramingLine(text: framingLine),
             const _InferenceStatusLine(),
             const SizedBox(height: 16),
