@@ -28,13 +28,14 @@ render legacy.svg 48 ic_launcher.png
 # Adaptive layers: 108dp, with the mark inside the 66dp safe zone.
 render mark.svg 108 ic_launcher_foreground.png
 render monochrome.svg 108 ic_launcher_monochrome.png
-# Notification small icon: Android draws it as an alpha mask, so it must be
-# the flat monochrome mark and nothing else. 24dp.
+# Notification small icon: Android draws it as an alpha mask at 24dp, which
+# is too small for the full ring stack -- notification.svg is the simplified
+# one-ring version drawn for exactly this.
 for bucket in "${buckets[@]}"; do
   dir="${bucket%%:*}"; scale="${bucket##*:}"
   px=$(printf '%.0f' "$(echo "24 * $scale" | bc -l)")
   mkdir -p "$res/drawable-$dir"
-  rsvg-convert -w "$px" -h "$px" "$here/monochrome.svg" -o "$res/drawable-$dir/ic_notification.png"
+  rsvg-convert -w "$px" -h "$px" "$here/notification.svg" -o "$res/drawable-$dir/ic_notification.png"
 done
 
 echo "regenerated icons under $res"
