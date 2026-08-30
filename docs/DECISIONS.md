@@ -3,6 +3,34 @@
 Smaller calls that shaped the repo but didn't warrant a full ADR. Newest
 first. Add an entry in the same PR that makes the decision.
 
+## 2026-08-30 — Stacked PRs: build the APK only at the ends of a stack
+
+`gh stack` opens a series as a GitHub stack. Every layer is evaluated against
+`main`, so the CI workflow runs in full for every pull request in the stack — a
+five-layer stack costs five debug-APK builds per `gh stack sync`, and the
+middle three carry almost no signal over the ones below and above them.
+
+The `Build` job now runs only when the pull request is not in a stack, is the
+lowest unmerged layer (`stack.base.ref == base.ref`), or is the top layer
+(`stack.position == stack.size`). Middle layers skip it. `Lint`, `Test`, and
+`Audit` still run on every layer — per-layer correctness is the point of
+one-topic-per-PR and is worth the seconds.
+
+This relies on a skipped required job counting as green under the `main`
+ruleset. Confirm that on the first stack of three or more layers. If a middle
+layer sits blocked on a pending `Build`, move the guard from the job onto the
+`flutter build apk` step instead — the step still skips, but the check reports.
+
+## 2026-08-30 — A stack lives in one worktree
+
+`gh stack sync`, `gh stack rebase`, and `gh stack modify` check each layer of
+the stack out in turn and cascade-rebase them. If any layer's branch is checked
+out in another worktree the operation fails partway through, and the shared
+stash caveat from the worktree setup applies to the rebase as well.
+
+Run every `gh stack` command from a single checkout, and keep one stack to one
+worktree. Parallel stacks are fine; a split stack is not.
+
 ## 2026-08-28 — What Matters lives in Nextcloud, not a Google Doc
 
 The What Matters document is read over WebDAV from the user's own Nextcloud,
