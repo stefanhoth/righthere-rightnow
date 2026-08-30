@@ -29,46 +29,81 @@ class BriefingSummaryBar extends ConsumerWidget {
         status.summary ??
         'Last updated ${DateFormat.jm().format(result.completedAt)}';
 
+    // Shaped as the sheet itself, resting at the bottom of the screen rather
+    // than as a bar that happens to open one: same rounded top, same drag
+    // handle the expanded sheet shows. Lifting it onto its own elevation is
+    // what separates it from the last Agenda Item behind it -- flush against
+    // the list it read as a stray grey strip.
     return Material(
       key: const Key('briefingSummaryBar'),
       color: theme.colorScheme.surfaceContainerHigh,
-      child: SafeArea(
-        top: false,
-        child: InkWell(
-          onTap: () => showBriefingSummarySheet(context, result),
+      elevation: 3,
+      shadowColor: theme.colorScheme.shadow,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => showBriefingSummarySheet(context, result),
+        // Inside the InkWell, so the splash reaches the gesture inset
+        // instead of stopping in the middle of what looks like the button.
+        child: SafeArea(
+          top: false,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
-            child: Row(
+            padding: const EdgeInsets.fromLTRB(24, 10, 24, 14),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                if (status.isRunning) ...[
-                  SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CircularProgressIndicator(
-                      key: const Key('briefingSummaryBarSpinner'),
-                      strokeWidth: 2,
-                      color: theme.colorScheme.onSurfaceVariant,
+                const _DragHandle(),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    if (status.isRunning) ...[
+                      SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                          key: const Key('briefingSummaryBarSpinner'),
+                          strokeWidth: 2,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                    ],
+                    Expanded(
+                      child: Text(
+                        line,
+                        key: const Key('briefingSummaryBarText'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                ],
-                Expanded(
-                  child: Text(
-                    line,
-                    key: const Key('briefingSummaryBarText'),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium,
-                  ),
-                ),
-                Icon(
-                  Icons.keyboard_arrow_up,
-                  color: theme.colorScheme.onSurfaceVariant,
+                  ],
                 ),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// The same 32x4 grip Flutter draws on a modal bottom sheet, so the collapsed
+/// bar and the sheet it opens read as one object at two heights. A chevron
+/// sat here before and said "a button", which is the wrong promise.
+class _DragHandle extends StatelessWidget {
+  const _DragHandle();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 32,
+      height: 4,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+        borderRadius: BorderRadius.circular(2),
       ),
     );
   }
