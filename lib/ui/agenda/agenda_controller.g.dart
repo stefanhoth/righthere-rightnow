@@ -34,7 +34,7 @@ final class DailyAgendaControllerProvider
 }
 
 String _$dailyAgendaControllerHash() =>
-    r'ed38b291cd484e11d464cb8e580ffd2ab019f565';
+    r'95bb34e5ec8de496166b4fa58497591405a241db';
 
 abstract class _$DailyAgendaController
     extends $AsyncNotifier<BriefingRunResult> {
@@ -151,3 +151,49 @@ final class LastBriefingRunCompletedAtProvider
 
 String _$lastBriefingRunCompletedAtHash() =>
     r'72e695d4a5dfbb313dc5f7f0b031cce793f616b6';
+
+/// Overridden in widget tests: every real path here leaves the app.
+
+@ProviderFor(sourceOpener)
+final sourceOpenerProvider = SourceOpenerProvider._();
+
+/// Overridden in widget tests: every real path here leaves the app.
+
+final class SourceOpenerProvider
+    extends $FunctionalProvider<SourceOpener, SourceOpener, SourceOpener>
+    with $Provider<SourceOpener> {
+  /// Overridden in widget tests: every real path here leaves the app.
+  SourceOpenerProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'sourceOpenerProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$sourceOpenerHash();
+
+  @$internal
+  @override
+  $ProviderElement<SourceOpener> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  SourceOpener create(Ref ref) {
+    return sourceOpener(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(SourceOpener value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<SourceOpener>(value),
+    );
+  }
+}
+
+String _$sourceOpenerHash() => r'0cfdc7b9727c5fa42cb41bbf5d748c0d47bebb73';

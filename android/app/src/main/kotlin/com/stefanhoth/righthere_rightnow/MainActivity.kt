@@ -1,18 +1,27 @@
 package com.stefanhoth.righthere_rightnow
 
+import android.content.ActivityNotFoundException
 import android.content.ContentUris
+import android.content.Intent
 import android.provider.CalendarContract
+import android.util.Log
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 
 /**
- * device_calendar_plus does not project SELF_ATTENDEE_STATUS, IS_ORGANIZER or
- * ORGANIZER, and it drops the organiser attendee row entirely (see
- * docs/adr/0001). The Instances projection map is a copy of Events', so all
- * three columns are queryable on the Instances URI; this channel supplies
- * them, keyed by (eventId, begin) for the Dart side to join on.
+ * Hosts the app's platform channels, all of them things the calendar plugin
+ * cannot do:
+ *
+ *  - `calendar_rsvp`: device_calendar_plus does not project
+ *    SELF_ATTENDEE_STATUS, IS_ORGANIZER or ORGANIZER, and it drops the
+ *    organiser attendee row entirely (see docs/adr/0001). The Instances
+ *    projection map is a copy of Events', so all three columns are queryable
+ *    on the Instances URI; this channel supplies them, keyed by
+ *    (eventId, begin) for the Dart side to join on.
+ *  - `alarm_rearm`: stores the Dart callback handle the boot receiver needs.
+ *  - `calendar_view`: opens one Event occurrence in the calendar app.
  */
 class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -41,6 +50,52 @@ class MainActivity : FlutterActivity() {
                 AlarmRearmPrefs.storeCallbackHandle(applicationContext, handle)
                 result.success(null)
             }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CALENDAR_VIEW_CHANNEL_NAME)
+            .setMethodCallHandler { call, result ->
+                if (call.method != METHOD_VIEW_EVENT) {
+                    result.notImplemented()
+                    return@setMethodCallHandler
+                }
+                handleViewEvent(call, result)
+            }
+    }
+
+    /**
+     * Hands one Event occurrence to the device's calendar app.
+     *
+     * The begin time is what selects the occurrence: on a `content://` URI
+     * alone the calendar shows the series, so a recurring Commitment tapped
+     * today would open its first instance instead.
+     */
+    private fun handleViewEvent(
+        call: MethodCall,
+        result: MethodChannel.Result,
+    ) {
+        val eventId = call.argument<String>("eventId")?.toLongOrNull()
+        val beginMillis = call.argument<Long>("beginMillis")
+        if (eventId == null || beginMillis == null) {
+            result.error(
+                "invalid_arguments",
+                "a numeric eventId and beginMillis are required",
+                null,
+            )
+            return
+        }
+
+        val intent = Intent(Intent.ACTION_VIEW)
+            .setData(ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, eventId))
+            .putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, beginMillis)
+
+        try {
+            startActivity(intent)
+            result.success(true)
+        } catch (e: ActivityNotFoundException) {
+            // No calendar app installed, or none that will show this Event.
+            // The Dart side tells the user; it is not a channel failure.
+            Log.i(TAG, "no activity to view calendar event $eventId", e)
+            result.success(false)
+        }
     }
 
     private fun handleQueryRsvpAndOrganiser(
@@ -97,5 +152,9 @@ class MainActivity : FlutterActivity() {
         private const val METHOD_QUERY_RSVP_AND_ORGANISER = "queryRsvpAndOrganiser"
         private const val ALARM_REARM_CHANNEL_NAME =
             "com.stefanhoth.righthere_rightnow/alarm_rearm"
+        private const val CALENDAR_VIEW_CHANNEL_NAME =
+            "com.stefanhoth.righthere_rightnow/calendar_view"
+        private const val METHOD_VIEW_EVENT = "viewEvent"
+        private const val TAG = "RightHereRightNow"
     }
 }

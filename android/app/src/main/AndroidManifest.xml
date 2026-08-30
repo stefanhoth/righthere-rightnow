@@ -113,5 +113,18 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+
+        <!-- url_launcher resolves before it launches, and Android 11+ package
+             visibility hides anything not declared here. Without these, a
+             Task's "open in Todoist" and a Commitment's conference link both
+             fail as if nothing on the device could handle them. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="todoist"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
+        </intent>
     </queries>
 </manifest>

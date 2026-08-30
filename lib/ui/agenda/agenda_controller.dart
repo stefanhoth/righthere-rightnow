@@ -10,6 +10,7 @@ import 'package:righthere_rightnow/inference/inference_outcome.dart';
 import 'package:righthere_rightnow/scheduling/notification_navigation.dart'
     as notification_navigation;
 import 'package:righthere_rightnow/ui/agenda/inference_status_controller.dart';
+import 'package:righthere_rightnow/ui/agenda/source_opener.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'agenda_controller.g.dart';
@@ -209,3 +210,7 @@ Future<int?> notificationLaunchRunId(Ref ref) {
 Future<DateTime?> lastBriefingRunCompletedAt(Ref ref) {
   return ref.watch(appDatabaseProvider).latestBriefingRunCompletedAt();
 }
+
+/// Overridden in widget tests: every real path here leaves the app.
+@riverpod
+SourceOpener sourceOpener(Ref ref) => SourceOpener();
