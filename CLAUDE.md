@@ -106,6 +106,21 @@ inference in the morning Briefing Run is impossible on this engine.
   2. Run `make ci` green locally.
   3. Rebase, then push.
   4. Open the PR and enable auto-merge.
+- Ship a series of three or more dependent PRs as a **stack** (`gh stack`):
+  1. `gh stack init --base main <first-branch>`, then `gh stack add <branch>`
+     per topic. One topic per layer still holds.
+  2. `make ci` green on each layer before moving up.
+  3. `gh stack submit --open` — pushes, opens, and links every PR at once.
+  4. When `main` moves, `gh stack sync` — one cascading rebase and
+     force-with-lease push for the whole stack. `git rerere` is on, so a
+     conflict resolved once replays up the layers.
+  5. Land it with `gh stack merge` (atomic, squash, one commit per PR) — not
+     layer-by-layer.
+  - Run every `gh stack` command from **one checkout**. A stack cannot span
+    worktrees — `sync`, `rebase`, and `modify` check each layer out in turn.
+    See [DECISIONS.md](docs/DECISIONS.md).
+  - More than one stack in flight: `gh stack checkout` with no argument lists
+    every stack with its number and merge status.
 - `main` is protected: no direct pushes.
 
 ## Gotchas

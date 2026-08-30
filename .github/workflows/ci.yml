@@ -20,6 +20,17 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Lint workflow files
+        # Pinned release binary from GitHub, same pattern as the Audit job.
+        # actionlint also shellchecks every `run:` block (shellcheck ships on
+        # the runner).
+        run: |
+          set -euo pipefail
+          VERSION="1.7.12"
+          curl -sSfL -o actionlint.tar.gz \
+            "https://github.com/rhysd/actionlint/releases/download/v${VERSION}/actionlint_${VERSION}_linux_amd64.tar.gz"
+          tar -xzf actionlint.tar.gz actionlint
+          ./actionlint -color
       - name: Set up Flutter
         uses: ./.github/actions/setup-flutter
       - run: make deps
@@ -48,6 +59,15 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    # In a stack, CI runs in full for every layer. The debug APK only carries
+    # signal at the ends: a non-stack PR, the lowest unmerged layer (lands on
+    # main next), or the top layer (the full change set). Middle layers skip
+    # this job; a skipped required job reports green. See docs/DECISIONS.md.
+    if: >-
+      github.event_name != 'pull_request'
+      || github.event.pull_request.stack == null
+      || github.event.pull_request.stack.base.ref == github.event.pull_request.base.ref
+      || github.event.pull_request.stack.position == github.event.pull_request.stack.size
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
