@@ -32,15 +32,22 @@ Task _task({
   required String id,
   Priority priority = Priority.p3,
   TaskDue? due,
+  String? title,
 }) {
   return Task(
     id: id,
-    title: id,
+    title: title ?? id,
     priority: priority,
     isRecurring: false,
     due: due,
   );
 }
+
+TaskDue _overdueBy(int days) => TaskDue(
+  date: clock().subtract(Duration(days: days)),
+  hasTime: false,
+  isRecurring: false,
+);
 
 void main() {
   test('the same input and clock always yield the same order', () {
@@ -178,5 +185,108 @@ void main() {
     final ranked = rankFallback([b, a], clock);
 
     expect(ranked.map((i) => i.id), ['td:a', 'td:b']);
+  });
+
+  group('never-decays escalation (ADR-0007)', () {
+    test('a 40-day-overdue Task on the list outranks a Task due today', () {
+      final escalating = _task(
+        id: 'td:passport',
+        title: 'Renew the passport before the trip',
+        due: _overdueBy(40),
+      );
+      final dueToday = _task(
+        id: 'td:today',
+        priority: Priority.p1,
+        due: TaskDue(date: clock(), hasTime: false, isRecurring: false),
+      );
+
+      final ranked = rankFallback(
+        [dueToday, escalating],
+        clock,
+        neverDecays: {'renew passport'},
+      );
+
+      expect(ranked.first.id, 'td:passport');
+    });
+
+    test('the same Task not on the list stays buried', () {
+      final stale = _task(
+        id: 'td:passport',
+        title: 'Renew the passport before the trip',
+        due: _overdueBy(40),
+      );
+      final dueToday = _task(
+        id: 'td:today',
+        priority: Priority.p1,
+        due: TaskDue(date: clock(), hasTime: false, isRecurring: false),
+      );
+
+      final ranked = rankFallback([dueToday, stale], clock);
+
+      expect(ranked.first.id, 'td:today');
+      expect(
+        fallbackScore(stale, clock),
+        lessThan(0),
+        reason: 'decayed, deeply negative',
+      );
+    });
+
+    test('a non-matching list scores identically to no list', () {
+      final task = _task(
+        id: 'td:x',
+        title: 'renew passport',
+        due: _overdueBy(30),
+      );
+
+      expect(
+        fallbackScore(task, clock, neverDecays: {'something else entirely'}),
+        fallbackScore(task, clock),
+      );
+    });
+
+    test('matching is a case-insensitive substring of the title', () {
+      final task = _task(
+        id: 'td:x',
+        title: 'Call the ACCOUNTANT about Q3',
+        due: _overdueBy(20),
+      );
+
+      expect(titleIsNeverDecay(task.title, {'call the accountant'}), isTrue);
+      expect(titleIsNeverDecay(task.title, {'  '}), isFalse);
+      expect(titleIsNeverDecay(task.title, {'dentist'}), isFalse);
+    });
+
+    test('the first overdue week is identical on or off the list', () {
+      final task = _task(
+        id: 'td:x',
+        title: 'renew passport',
+        due: _overdueBy(5),
+      );
+
+      expect(
+        fallbackScore(task, clock, neverDecays: {'renew passport'}),
+        fallbackScore(task, clock),
+      );
+    });
+
+    test('an escalating Task keeps climbing with age', () {
+      final at20 = _task(
+        id: 'td:x',
+        title: 'renew passport',
+        due: _overdueBy(20),
+      );
+      final at40 = _task(
+        id: 'td:x',
+        title: 'renew passport',
+        due: _overdueBy(40),
+      );
+
+      expect(
+        fallbackScore(at40, clock, neverDecays: {'renew passport'}),
+        greaterThan(
+          fallbackScore(at20, clock, neverDecays: {'renew passport'}),
+        ),
+      );
+    });
   });
 }
