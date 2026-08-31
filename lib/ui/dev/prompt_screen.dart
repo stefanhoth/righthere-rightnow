@@ -43,7 +43,11 @@ class _PromptScreenState extends ConsumerState<PromptScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Ranking prompt')),
-      body: Padding(
+      // Scrolls rather than an Expanded field in a fixed Column: when the
+      // soft keyboard opens it halves the viewport, and a non-scrolling
+      // Column pushes the field (and the Save button under it) off-screen
+      // with no way to reach them.
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -54,14 +58,11 @@ class _PromptScreenState extends ConsumerState<PromptScreen> {
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 8),
-            Expanded(
-              child: TextField(
-                key: const Key('promptField'),
-                controller: _controller,
-                maxLines: null,
-                expands: true,
-                textAlignVertical: TextAlignVertical.top,
-              ),
+            TextField(
+              key: const Key('promptField'),
+              controller: _controller,
+              minLines: 8,
+              maxLines: null,
             ),
             const SizedBox(height: 8),
             Row(
