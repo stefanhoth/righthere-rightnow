@@ -57,7 +57,7 @@ final class BriefingRunOrchestratorProvider
 String _$briefingRunOrchestratorHash() =>
     r'ce95c09662efedf6fd84b0ec493aa1435ea7f64f';
 
-/// Kept alive: [GemmaLiteRtEngine] loads and caches ~3.7 GB of model weights
+/// Kept alive: [GemmaLiteRtEngine] loads and caches ~2 GB of model weights
 /// the first time inference is requested -- recreating it on every app open
 /// would pay that cost every time.
 ///
@@ -67,7 +67,7 @@ String _$briefingRunOrchestratorHash() =>
 @ProviderFor(inferenceEngine)
 final inferenceEngineProvider = InferenceEngineProvider._();
 
-/// Kept alive: [GemmaLiteRtEngine] loads and caches ~3.7 GB of model weights
+/// Kept alive: [GemmaLiteRtEngine] loads and caches ~2 GB of model weights
 /// the first time inference is requested -- recreating it on every app open
 /// would pay that cost every time.
 ///
@@ -78,7 +78,7 @@ final class InferenceEngineProvider
     extends
         $FunctionalProvider<InferenceEngine, InferenceEngine, InferenceEngine>
     with $Provider<InferenceEngine> {
-  /// Kept alive: [GemmaLiteRtEngine] loads and caches ~3.7 GB of model weights
+  /// Kept alive: [GemmaLiteRtEngine] loads and caches ~2 GB of model weights
   /// the first time inference is requested -- recreating it on every app open
   /// would pay that cost every time.
   ///

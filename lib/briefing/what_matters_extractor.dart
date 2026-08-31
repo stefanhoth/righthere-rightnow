@@ -21,7 +21,7 @@ class WhatMattersExtractor {
     required this.engine,
     required this.database,
     required this.clock,
-    this.timeout = const Duration(seconds: 30),
+    this.timeout = const Duration(seconds: 90),
   });
 
   final InferenceEngine engine;
