@@ -6,25 +6,40 @@ import 'package:righthere_rightnow/domain/priority.dart';
 /// The deterministic ranker that always works -- the safety net for the
 /// model (ADR-0003), and in this milestone the only ranker.
 ///
-/// Pure: no I/O, no `DateTime.now()`. The same item and the same clock
-/// always yield the same score.
-int fallbackScore(AgendaItem item, Clock clock) {
+/// Pure: no I/O, no `DateTime.now()`. The same inputs always yield the same
+/// score.
+///
+/// [neverDecays] is the What Matters never-decays list (ADR-0007): a Task
+/// whose title matches one of these phrases *escalates* with age past the
+/// first overdue week instead of decaying. An empty set -- the default, and
+/// what an unreadable What Matters degrades to -- reproduces the pure decay
+/// behaviour exactly.
+int fallbackScore(
+  AgendaItem item,
+  Clock clock, {
+  Set<String> neverDecays = const {},
+}) {
   final now = clock();
   return switch (item) {
     Commitment() => _commitmentScore(item, now),
-    Task() => _taskScore(item, now),
+    Task() => _taskScore(item, now, neverDecays),
   };
 }
 
 /// Sorts [items] by [fallbackScore] descending, breaking ties on `id` so
 /// the order is reproducible even between items that score identically.
-List<AgendaItem> rankFallback(List<AgendaItem> items, Clock clock) {
+List<AgendaItem> rankFallback(
+  List<AgendaItem> items,
+  Clock clock, {
+  Set<String> neverDecays = const {},
+}) {
   final ranked = [...items]
     ..sort((a, b) {
       final byScore = fallbackScore(
         b,
         clock,
-      ).compareTo(fallbackScore(a, clock));
+        neverDecays: neverDecays,
+      ).compareTo(fallbackScore(a, clock, neverDecays: neverDecays));
       if (byScore != 0) {
         return byScore;
       }
@@ -32,6 +47,35 @@ List<AgendaItem> rankFallback(List<AgendaItem> items, Clock clock) {
     });
   return ranked;
 }
+
+/// Whether a Task with [title] is on the never-decays list.
+///
+/// A phrase matches when every word in it also appears in the title,
+/// case-insensitively and order-independently -- so "renew passport" catches
+/// "Renew the passport before the trip". Word-set rather than substring so a
+/// short phrase is not defeated by a filler word. A phrase with no words
+/// (blank or punctuation only) never matches.
+bool titleIsNeverDecay(String title, Set<String> neverDecays) {
+  final titleWords = _words(title);
+  if (titleWords.isEmpty) {
+    return false;
+  }
+  for (final phrase in neverDecays) {
+    final phraseWords = _words(phrase);
+    if (phraseWords.isNotEmpty && phraseWords.every(titleWords.contains)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+final _wordSplit = RegExp('[^a-z0-9]+');
+
+Set<String> _words(String text) => text
+    .toLowerCase()
+    .split(_wordSplit)
+    .where((word) => word.isNotEmpty)
+    .toSet();
 
 int _commitmentScore(Commitment commitment, DateTime now) {
   var score = 0;
@@ -59,14 +103,21 @@ int _commitmentScore(Commitment commitment, DateTime now) {
   return score;
 }
 
-int _taskScore(Task task, DateTime now) {
+int _taskScore(Task task, DateTime now, Set<String> neverDecays) {
   var score = _priorityBonus(task.priority);
 
   final overdue = overdueDays(task.due, now);
   if (overdue != null) {
-    // Urgent for about a week, then decaying -- stale, not escalating. By
-    // day 40 this is deeply negative: dead, not screaming.
-    return score + (overdue <= 7 ? overdue * 200 : 1400 - (overdue - 7) * 60);
+    // The first week is urgent either way. After that the curves diverge:
+    // a never-decays Task keeps climbing (ADR-0007 -- consequence, not age),
+    // every other Task decays and by day 40 is deeply negative: dead, not
+    // screaming.
+    if (overdue <= 7) {
+      return score + overdue * 200;
+    }
+    return titleIsNeverDecay(task.title, neverDecays)
+        ? score + 1400 + (overdue - 7) * 60
+        : score + 1400 - (overdue - 7) * 60;
   }
 
   final dueIn = daysUntilDue(task.due, now);

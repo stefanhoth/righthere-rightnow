@@ -13,6 +13,7 @@ import 'package:righthere_rightnow/domain/agenda_item.dart';
 import 'package:righthere_rightnow/domain/priority.dart';
 import 'package:righthere_rightnow/domain/ranked_agenda.dart';
 import 'package:righthere_rightnow/domain/response_status.dart';
+import 'package:righthere_rightnow/domain/task_due.dart';
 import 'package:righthere_rightnow/domain/what_matters_extraction.dart';
 
 import '../support/fake_what_matters_repository.dart';
@@ -268,6 +269,53 @@ void main() {
           .getSingle();
       expect(storedRun.whatMattersProse, 'the prose');
       expect(storedRun.whatMattersExtractionJson, '{"projects":[],"keep":[]}');
+    },
+  );
+
+  test(
+    'the stored never-decays list escalates a matching overdue Task',
+    () async {
+      await database.saveWhatMattersExtraction(
+        extraction: const WhatMattersExtraction(
+          projects: [],
+          neverDecays: ['renew passport'],
+        ),
+        sourceProse: 'keep the passport current',
+        extractedAt: clock(),
+      );
+      await tokenStorage.write('a-token');
+      when(() => todoistClient.fetchTasks(any())).thenAnswer(
+        (_) async => [
+          Task(
+            id: 'td:passport',
+            title: 'Renew the passport',
+            priority: Priority.p3,
+            isRecurring: false,
+            due: TaskDue(
+              date: clock().subtract(const Duration(days: 40)),
+              hasTime: false,
+              isRecurring: false,
+            ),
+          ),
+          Task(
+            id: 'td:dead',
+            title: 'Read that long article',
+            priority: Priority.p3,
+            isRecurring: false,
+            due: TaskDue(
+              date: clock().subtract(const Duration(days: 40)),
+              hasTime: false,
+              isRecurring: false,
+            ),
+          ),
+        ],
+      );
+
+      final result = await orchestrator.run();
+
+      expect(result.agenda.items.first.id, 'td:passport');
+      expect(result.agenda.items.map((i) => i.id), contains('td:dead'));
+      expect(result.agenda.items.last.id, 'td:dead');
     },
   );
 
