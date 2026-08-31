@@ -135,6 +135,53 @@ final class CachedWhatMattersProvider
 
 String _$cachedWhatMattersHash() => r'6244805d48cefa3a47c574f5ea625233cb97af5b';
 
+/// Whether the hand-delivered Gemma model file is in place, and where it
+/// should go if not (see DECISIONS.md, 2026-08-31).
+
+@ProviderFor(gemmaModelStatus)
+final gemmaModelStatusProvider = GemmaModelStatusProvider._();
+
+/// Whether the hand-delivered Gemma model file is in place, and where it
+/// should go if not (see DECISIONS.md, 2026-08-31).
+
+final class GemmaModelStatusProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<GemmaModelStatus>,
+          GemmaModelStatus,
+          FutureOr<GemmaModelStatus>
+        >
+    with $FutureModifier<GemmaModelStatus>, $FutureProvider<GemmaModelStatus> {
+  /// Whether the hand-delivered Gemma model file is in place, and where it
+  /// should go if not (see DECISIONS.md, 2026-08-31).
+  GemmaModelStatusProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'gemmaModelStatusProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$gemmaModelStatusHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<GemmaModelStatus> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<GemmaModelStatus> create(Ref ref) {
+    return gemmaModelStatus(ref);
+  }
+}
+
+String _$gemmaModelStatusHash() => r'e98cd40315ab779e25c3a0e357ec6cc4e8f7a35d';
+
 @ProviderFor(calendarPermissionStatus)
 final calendarPermissionStatusProvider = CalendarPermissionStatusProvider._();
 

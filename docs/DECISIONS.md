@@ -3,6 +3,44 @@
 Smaller calls that shaped the repo but didn't warrant a full ADR. Newest
 first. Add an entry in the same PR that makes the decision.
 
+## 2026-08-31 — A downloaded Gemma 4 model, not Gemini Nano
+
+[ADR-0004](adr/0004-gemini-nano-behind-an-engine-interface.md) put an engine
+interface in front of Gemini Nano and said to prefer Nano while it is
+available, with a downloaded model as the fallback. On the Pixel 9, Nano is
+available and ranks — but it cannot do the generative work Milestone 4 needs:
+
+- **The 256-token output ceiling is an ML Kit GenAI limit, not a model
+  limit.** The What Matters extraction (ADR-0008) must emit a variable-length
+  JSON structure; any real never-decays list overflows 256 tokens and
+  truncates mid-string, so the parser correctly rejects it and the extraction
+  never succeeds. On device, 2026-08-31: `Extraction failed (unusableOutput)`,
+  both attempts.
+- **No sampling control.** ML Kit GenAI exposes no temperature / top-k, so
+  Nano falls into repetition loops ("meet with every peer-EM" ×20 until the
+  token cap cuts it off).
+
+The engine seam already anticipated this. `flutter_gemma_litertlm` runs a
+downloaded `.litertlm` model over dart:ffi with a caller-set output length,
+32k context, and temperature / top-k / top-p. We wire **Gemma 4 E2B**
+(`litert-community/gemma-4-E2B-it-litert-lm`, ~2 GB int4); `BuiltInAiEngine`
+(Nano) stays in the tree as the ADR-0004 fallback, not the default.
+
+E4B (~3.7 GB) was tried first and rejected on the device: loading it drove
+the Pixel 9 into system-wide memory pressure (Android killing Chrome,
+Settings, mail) and the load never finished. E2B is the size the phone can
+actually hold alongside normal use.
+
+**Consequences.** `flutter_gemma` moves 1.6.5 → 1.7.0 (pulled by
+`flutter_gemma_litertlm`). The model is delivered by `adb push` to the app's
+external files dir and loaded with `fromFile()` — a single sideloaded Pixel
+does not need the download-with-progress UX that Task 4.2 sketched; that
+becomes a later `fromNetwork()` follow-up if the manual step proves annoying.
+The context window is capped at 4096 tokens, not the model's 32k, so the KV
+cache does not add to memory pressure. Inference stays app-open only
+(ADR-0006): loading the model in a cold Doze background isolate is its own
+risk, unaddressed here.
+
 ## 2026-08-30 — Stacked PRs: build the APK only at the ends of a stack
 
 `gh stack` opens a series as a GitHub stack. Every layer is evaluated against
