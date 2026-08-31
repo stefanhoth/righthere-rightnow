@@ -25,7 +25,12 @@ Future<DateTime> nextScheduledRun(Ref ref) async {
   );
 }
 
-@riverpod
+// keepAlive: Settings calls `updateRunTime` through `ref.read(...notifier)`
+// and nothing watches this controller. Auto-disposed, it is thrown away on
+// the first `await` inside `updateRunTime` -- the write to secure storage --
+// so the `ref` is dead by the time the method resumes to re-arm the alarm.
+// The stored time changed but the alarm did not, and the crash was silent.
+@Riverpod(keepAlive: true)
 class RunTimeController extends _$RunTimeController {
   @override
   void build() {}
@@ -34,7 +39,7 @@ class RunTimeController extends _$RunTimeController {
   /// needed for the change to take effect.
   Future<void> updateRunTime(RunTime runTime) async {
     await ref.read(runTimeStorageProvider).write(runTime);
-    ref.invalidate(storedRunTimeProvider);
     await scheduleNextBriefingAlarm(runTime: runTime);
+    ref.invalidate(storedRunTimeProvider);
   }
 }

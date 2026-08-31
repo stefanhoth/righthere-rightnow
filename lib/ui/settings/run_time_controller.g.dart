@@ -101,7 +101,7 @@ final class RunTimeControllerProvider
         argument: null,
         retry: null,
         name: r'runTimeControllerProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -122,7 +122,7 @@ final class RunTimeControllerProvider
   }
 }
 
-String _$runTimeControllerHash() => r'0cf2d6627c1a8ecff9bacd2bb5943da3581014aa';
+String _$runTimeControllerHash() => r'f6aa2aa8b4685daa8ccb27fd079ad6db37133898';
 
 abstract class _$RunTimeController extends $Notifier<void> {
   void build();
