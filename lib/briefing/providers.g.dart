@@ -198,3 +198,51 @@ final class FramingLineGeneratorProvider
 
 String _$framingLineGeneratorHash() =>
     r'60acabccd700ec2b3e26b19edcfe215ddc5d5f11';
+
+@ProviderFor(whatMattersExtractor)
+final whatMattersExtractorProvider = WhatMattersExtractorProvider._();
+
+final class WhatMattersExtractorProvider
+    extends
+        $FunctionalProvider<
+          WhatMattersExtractor,
+          WhatMattersExtractor,
+          WhatMattersExtractor
+        >
+    with $Provider<WhatMattersExtractor> {
+  WhatMattersExtractorProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'whatMattersExtractorProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$whatMattersExtractorHash();
+
+  @$internal
+  @override
+  $ProviderElement<WhatMattersExtractor> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  WhatMattersExtractor create(Ref ref) {
+    return whatMattersExtractor(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(WhatMattersExtractor value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<WhatMattersExtractor>(value),
+    );
+  }
+}
+
+String _$whatMattersExtractorHash() =>
+    r'3d50c002bd6804190c6c9ee5fb44afdf821f889c';

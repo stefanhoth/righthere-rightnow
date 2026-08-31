@@ -13,6 +13,7 @@ import 'package:righthere_rightnow/domain/agenda_item.dart';
 import 'package:righthere_rightnow/domain/priority.dart';
 import 'package:righthere_rightnow/domain/ranked_agenda.dart';
 import 'package:righthere_rightnow/domain/response_status.dart';
+import 'package:righthere_rightnow/domain/what_matters_extraction.dart';
 
 import '../support/fake_what_matters_repository.dart';
 
@@ -234,6 +235,41 @@ void main() {
     final storedRun = await database.select(database.briefingRuns).getSingle();
     expect(storedRun.error, contains('What Matters'));
   });
+
+  test(
+    'a run snapshots the What Matters prose and the stored extraction',
+    () async {
+      await database.saveWhatMattersExtraction(
+        extraction: WhatMattersExtraction.empty,
+        sourceProse: 'the prose',
+        extractedAt: clock(),
+      );
+      final withDoc = BriefingRunOrchestrator(
+        calendarReader: calendarReader,
+        todoistClient: todoistClient,
+        todoistTokenStorage: tokenStorage,
+        whatMattersRepository: stubWhatMattersRepository(
+          WhatMattersReadResult(
+            document: WhatMattersDocument(
+              prose: 'the prose',
+              fetchedAt: clock(),
+            ),
+          ),
+        ),
+        database: database,
+        clock: clock,
+      );
+
+      final result = await withDoc.run();
+
+      expect(result.whatMatters?.prose, 'the prose');
+      final storedRun = await database
+          .select(database.briefingRuns)
+          .getSingle();
+      expect(storedRun.whatMattersProse, 'the prose');
+      expect(storedRun.whatMattersExtractionJson, '{"projects":[],"keep":[]}');
+    },
+  );
 
   test('a denied calendar permission is flagged distinctly', () async {
     when(

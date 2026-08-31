@@ -13,6 +13,7 @@ String describeInferenceAttempt(InferenceAttemptRecord attempt) {
   final work = switch (attempt.work) {
     InferenceWork.ranking => 'Ranking',
     InferenceWork.framing => 'Framing',
+    InferenceWork.extraction => 'Extraction',
   };
   final outcome = switch (attempt.result) {
     InferenceResultKind.succeeded => 'ran',

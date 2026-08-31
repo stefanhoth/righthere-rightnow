@@ -84,6 +84,28 @@ class $BriefingRunsTable extends BriefingRuns
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _whatMattersProseMeta = const VerificationMeta(
+    'whatMattersProse',
+  );
+  @override
+  late final GeneratedColumn<String> whatMattersProse = GeneratedColumn<String>(
+    'what_matters_prose',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _whatMattersExtractionJsonMeta =
+      const VerificationMeta('whatMattersExtractionJson');
+  @override
+  late final GeneratedColumn<String> whatMattersExtractionJson =
+      GeneratedColumn<String>(
+        'what_matters_extraction_json',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -93,6 +115,8 @@ class $BriefingRunsTable extends BriefingRuns
     promptVersion,
     error,
     framingLine,
+    whatMattersProse,
+    whatMattersExtractionJson,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -152,6 +176,24 @@ class $BriefingRunsTable extends BriefingRuns
         ),
       );
     }
+    if (data.containsKey('what_matters_prose')) {
+      context.handle(
+        _whatMattersProseMeta,
+        whatMattersProse.isAcceptableOrUnknown(
+          data['what_matters_prose']!,
+          _whatMattersProseMeta,
+        ),
+      );
+    }
+    if (data.containsKey('what_matters_extraction_json')) {
+      context.handle(
+        _whatMattersExtractionJsonMeta,
+        whatMattersExtractionJson.isAcceptableOrUnknown(
+          data['what_matters_extraction_json']!,
+          _whatMattersExtractionJsonMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -191,6 +233,14 @@ class $BriefingRunsTable extends BriefingRuns
         DriftSqlType.string,
         data['${effectivePrefix}framing_line'],
       ),
+      whatMattersProse: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}what_matters_prose'],
+      ),
+      whatMattersExtractionJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}what_matters_extraction_json'],
+      ),
     );
   }
 
@@ -216,6 +266,13 @@ class BriefingRun extends DataClass implements Insertable<BriefingRun> {
   /// attempt -- null until then, and forever if inference never succeeds
   /// for this run.
   final String? framingLine;
+
+  /// The What Matters prose and its extraction as this run saw them
+  /// (ADR-0008) -- snapshotted so a replayed day is scored against the
+  /// priorities that were current then, not today's. Neither is
+  /// backfillable. Null when no What Matters document was configured.
+  final String? whatMattersProse;
+  final String? whatMattersExtractionJson;
   const BriefingRun({
     required this.id,
     required this.startedAt,
@@ -224,6 +281,8 @@ class BriefingRun extends DataClass implements Insertable<BriefingRun> {
     this.promptVersion,
     this.error,
     this.framingLine,
+    this.whatMattersProse,
+    this.whatMattersExtractionJson,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -245,6 +304,14 @@ class BriefingRun extends DataClass implements Insertable<BriefingRun> {
     if (!nullToAbsent || framingLine != null) {
       map['framing_line'] = Variable<String>(framingLine);
     }
+    if (!nullToAbsent || whatMattersProse != null) {
+      map['what_matters_prose'] = Variable<String>(whatMattersProse);
+    }
+    if (!nullToAbsent || whatMattersExtractionJson != null) {
+      map['what_matters_extraction_json'] = Variable<String>(
+        whatMattersExtractionJson,
+      );
+    }
     return map;
   }
 
@@ -263,6 +330,13 @@ class BriefingRun extends DataClass implements Insertable<BriefingRun> {
       framingLine: framingLine == null && nullToAbsent
           ? const Value.absent()
           : Value(framingLine),
+      whatMattersProse: whatMattersProse == null && nullToAbsent
+          ? const Value.absent()
+          : Value(whatMattersProse),
+      whatMattersExtractionJson:
+          whatMattersExtractionJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(whatMattersExtractionJson),
     );
   }
 
@@ -281,6 +355,10 @@ class BriefingRun extends DataClass implements Insertable<BriefingRun> {
       promptVersion: serializer.fromJson<String?>(json['promptVersion']),
       error: serializer.fromJson<String?>(json['error']),
       framingLine: serializer.fromJson<String?>(json['framingLine']),
+      whatMattersProse: serializer.fromJson<String?>(json['whatMattersProse']),
+      whatMattersExtractionJson: serializer.fromJson<String?>(
+        json['whatMattersExtractionJson'],
+      ),
     );
   }
   @override
@@ -296,6 +374,10 @@ class BriefingRun extends DataClass implements Insertable<BriefingRun> {
       'promptVersion': serializer.toJson<String?>(promptVersion),
       'error': serializer.toJson<String?>(error),
       'framingLine': serializer.toJson<String?>(framingLine),
+      'whatMattersProse': serializer.toJson<String?>(whatMattersProse),
+      'whatMattersExtractionJson': serializer.toJson<String?>(
+        whatMattersExtractionJson,
+      ),
     };
   }
 
@@ -307,6 +389,8 @@ class BriefingRun extends DataClass implements Insertable<BriefingRun> {
     Value<String?> promptVersion = const Value.absent(),
     Value<String?> error = const Value.absent(),
     Value<String?> framingLine = const Value.absent(),
+    Value<String?> whatMattersProse = const Value.absent(),
+    Value<String?> whatMattersExtractionJson = const Value.absent(),
   }) => BriefingRun(
     id: id ?? this.id,
     startedAt: startedAt ?? this.startedAt,
@@ -317,6 +401,12 @@ class BriefingRun extends DataClass implements Insertable<BriefingRun> {
         : this.promptVersion,
     error: error.present ? error.value : this.error,
     framingLine: framingLine.present ? framingLine.value : this.framingLine,
+    whatMattersProse: whatMattersProse.present
+        ? whatMattersProse.value
+        : this.whatMattersProse,
+    whatMattersExtractionJson: whatMattersExtractionJson.present
+        ? whatMattersExtractionJson.value
+        : this.whatMattersExtractionJson,
   );
   BriefingRun copyWithCompanion(BriefingRunsCompanion data) {
     return BriefingRun(
@@ -333,6 +423,12 @@ class BriefingRun extends DataClass implements Insertable<BriefingRun> {
       framingLine: data.framingLine.present
           ? data.framingLine.value
           : this.framingLine,
+      whatMattersProse: data.whatMattersProse.present
+          ? data.whatMattersProse.value
+          : this.whatMattersProse,
+      whatMattersExtractionJson: data.whatMattersExtractionJson.present
+          ? data.whatMattersExtractionJson.value
+          : this.whatMattersExtractionJson,
     );
   }
 
@@ -345,7 +441,9 @@ class BriefingRun extends DataClass implements Insertable<BriefingRun> {
           ..write('rankedBy: $rankedBy, ')
           ..write('promptVersion: $promptVersion, ')
           ..write('error: $error, ')
-          ..write('framingLine: $framingLine')
+          ..write('framingLine: $framingLine, ')
+          ..write('whatMattersProse: $whatMattersProse, ')
+          ..write('whatMattersExtractionJson: $whatMattersExtractionJson')
           ..write(')'))
         .toString();
   }
@@ -359,6 +457,8 @@ class BriefingRun extends DataClass implements Insertable<BriefingRun> {
     promptVersion,
     error,
     framingLine,
+    whatMattersProse,
+    whatMattersExtractionJson,
   );
   @override
   bool operator ==(Object other) =>
@@ -370,7 +470,9 @@ class BriefingRun extends DataClass implements Insertable<BriefingRun> {
           other.rankedBy == this.rankedBy &&
           other.promptVersion == this.promptVersion &&
           other.error == this.error &&
-          other.framingLine == this.framingLine);
+          other.framingLine == this.framingLine &&
+          other.whatMattersProse == this.whatMattersProse &&
+          other.whatMattersExtractionJson == this.whatMattersExtractionJson);
 }
 
 class BriefingRunsCompanion extends UpdateCompanion<BriefingRun> {
@@ -381,6 +483,8 @@ class BriefingRunsCompanion extends UpdateCompanion<BriefingRun> {
   final Value<String?> promptVersion;
   final Value<String?> error;
   final Value<String?> framingLine;
+  final Value<String?> whatMattersProse;
+  final Value<String?> whatMattersExtractionJson;
   const BriefingRunsCompanion({
     this.id = const Value.absent(),
     this.startedAt = const Value.absent(),
@@ -389,6 +493,8 @@ class BriefingRunsCompanion extends UpdateCompanion<BriefingRun> {
     this.promptVersion = const Value.absent(),
     this.error = const Value.absent(),
     this.framingLine = const Value.absent(),
+    this.whatMattersProse = const Value.absent(),
+    this.whatMattersExtractionJson = const Value.absent(),
   });
   BriefingRunsCompanion.insert({
     this.id = const Value.absent(),
@@ -398,6 +504,8 @@ class BriefingRunsCompanion extends UpdateCompanion<BriefingRun> {
     this.promptVersion = const Value.absent(),
     this.error = const Value.absent(),
     this.framingLine = const Value.absent(),
+    this.whatMattersProse = const Value.absent(),
+    this.whatMattersExtractionJson = const Value.absent(),
   }) : startedAt = Value(startedAt),
        completedAt = Value(completedAt),
        rankedBy = Value(rankedBy);
@@ -409,6 +517,8 @@ class BriefingRunsCompanion extends UpdateCompanion<BriefingRun> {
     Expression<String>? promptVersion,
     Expression<String>? error,
     Expression<String>? framingLine,
+    Expression<String>? whatMattersProse,
+    Expression<String>? whatMattersExtractionJson,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -418,6 +528,9 @@ class BriefingRunsCompanion extends UpdateCompanion<BriefingRun> {
       if (promptVersion != null) 'prompt_version': promptVersion,
       if (error != null) 'error': error,
       if (framingLine != null) 'framing_line': framingLine,
+      if (whatMattersProse != null) 'what_matters_prose': whatMattersProse,
+      if (whatMattersExtractionJson != null)
+        'what_matters_extraction_json': whatMattersExtractionJson,
     });
   }
 
@@ -429,6 +542,8 @@ class BriefingRunsCompanion extends UpdateCompanion<BriefingRun> {
     Value<String?>? promptVersion,
     Value<String?>? error,
     Value<String?>? framingLine,
+    Value<String?>? whatMattersProse,
+    Value<String?>? whatMattersExtractionJson,
   }) {
     return BriefingRunsCompanion(
       id: id ?? this.id,
@@ -438,6 +553,9 @@ class BriefingRunsCompanion extends UpdateCompanion<BriefingRun> {
       promptVersion: promptVersion ?? this.promptVersion,
       error: error ?? this.error,
       framingLine: framingLine ?? this.framingLine,
+      whatMattersProse: whatMattersProse ?? this.whatMattersProse,
+      whatMattersExtractionJson:
+          whatMattersExtractionJson ?? this.whatMattersExtractionJson,
     );
   }
 
@@ -467,6 +585,14 @@ class BriefingRunsCompanion extends UpdateCompanion<BriefingRun> {
     if (framingLine.present) {
       map['framing_line'] = Variable<String>(framingLine.value);
     }
+    if (whatMattersProse.present) {
+      map['what_matters_prose'] = Variable<String>(whatMattersProse.value);
+    }
+    if (whatMattersExtractionJson.present) {
+      map['what_matters_extraction_json'] = Variable<String>(
+        whatMattersExtractionJson.value,
+      );
+    }
     return map;
   }
 
@@ -479,7 +605,9 @@ class BriefingRunsCompanion extends UpdateCompanion<BriefingRun> {
           ..write('rankedBy: $rankedBy, ')
           ..write('promptVersion: $promptVersion, ')
           ..write('error: $error, ')
-          ..write('framingLine: $framingLine')
+          ..write('framingLine: $framingLine, ')
+          ..write('whatMattersProse: $whatMattersProse, ')
+          ..write('whatMattersExtractionJson: $whatMattersExtractionJson')
           ..write(')'))
         .toString();
   }
@@ -2515,6 +2643,330 @@ class WhatMattersCacheCompanion extends UpdateCompanion<WhatMattersCacheData> {
   }
 }
 
+class $WhatMattersExtractionsTable extends WhatMattersExtractions
+    with TableInfo<$WhatMattersExtractionsTable, WhatMattersExtractionRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $WhatMattersExtractionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _sourceProseMeta = const VerificationMeta(
+    'sourceProse',
+  );
+  @override
+  late final GeneratedColumn<String> sourceProse = GeneratedColumn<String>(
+    'source_prose',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _extractionJsonMeta = const VerificationMeta(
+    'extractionJson',
+  );
+  @override
+  late final GeneratedColumn<String> extractionJson = GeneratedColumn<String>(
+    'extraction_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _extractedAtMeta = const VerificationMeta(
+    'extractedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> extractedAt = GeneratedColumn<DateTime>(
+    'extracted_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    sourceProse,
+    extractionJson,
+    extractedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'what_matters_extractions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<WhatMattersExtractionRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('source_prose')) {
+      context.handle(
+        _sourceProseMeta,
+        sourceProse.isAcceptableOrUnknown(
+          data['source_prose']!,
+          _sourceProseMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceProseMeta);
+    }
+    if (data.containsKey('extraction_json')) {
+      context.handle(
+        _extractionJsonMeta,
+        extractionJson.isAcceptableOrUnknown(
+          data['extraction_json']!,
+          _extractionJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_extractionJsonMeta);
+    }
+    if (data.containsKey('extracted_at')) {
+      context.handle(
+        _extractedAtMeta,
+        extractedAt.isAcceptableOrUnknown(
+          data['extracted_at']!,
+          _extractedAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_extractedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  WhatMattersExtractionRow map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return WhatMattersExtractionRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      sourceProse: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_prose'],
+      )!,
+      extractionJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}extraction_json'],
+      )!,
+      extractedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}extracted_at'],
+      )!,
+    );
+  }
+
+  @override
+  $WhatMattersExtractionsTable createAlias(String alias) {
+    return $WhatMattersExtractionsTable(attachedDatabase, alias);
+  }
+}
+
+class WhatMattersExtractionRow extends DataClass
+    implements Insertable<WhatMattersExtractionRow> {
+  final int id;
+  final String sourceProse;
+  final String extractionJson;
+  final DateTime extractedAt;
+  const WhatMattersExtractionRow({
+    required this.id,
+    required this.sourceProse,
+    required this.extractionJson,
+    required this.extractedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['source_prose'] = Variable<String>(sourceProse);
+    map['extraction_json'] = Variable<String>(extractionJson);
+    map['extracted_at'] = Variable<DateTime>(extractedAt);
+    return map;
+  }
+
+  WhatMattersExtractionsCompanion toCompanion(bool nullToAbsent) {
+    return WhatMattersExtractionsCompanion(
+      id: Value(id),
+      sourceProse: Value(sourceProse),
+      extractionJson: Value(extractionJson),
+      extractedAt: Value(extractedAt),
+    );
+  }
+
+  factory WhatMattersExtractionRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return WhatMattersExtractionRow(
+      id: serializer.fromJson<int>(json['id']),
+      sourceProse: serializer.fromJson<String>(json['sourceProse']),
+      extractionJson: serializer.fromJson<String>(json['extractionJson']),
+      extractedAt: serializer.fromJson<DateTime>(json['extractedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'sourceProse': serializer.toJson<String>(sourceProse),
+      'extractionJson': serializer.toJson<String>(extractionJson),
+      'extractedAt': serializer.toJson<DateTime>(extractedAt),
+    };
+  }
+
+  WhatMattersExtractionRow copyWith({
+    int? id,
+    String? sourceProse,
+    String? extractionJson,
+    DateTime? extractedAt,
+  }) => WhatMattersExtractionRow(
+    id: id ?? this.id,
+    sourceProse: sourceProse ?? this.sourceProse,
+    extractionJson: extractionJson ?? this.extractionJson,
+    extractedAt: extractedAt ?? this.extractedAt,
+  );
+  WhatMattersExtractionRow copyWithCompanion(
+    WhatMattersExtractionsCompanion data,
+  ) {
+    return WhatMattersExtractionRow(
+      id: data.id.present ? data.id.value : this.id,
+      sourceProse: data.sourceProse.present
+          ? data.sourceProse.value
+          : this.sourceProse,
+      extractionJson: data.extractionJson.present
+          ? data.extractionJson.value
+          : this.extractionJson,
+      extractedAt: data.extractedAt.present
+          ? data.extractedAt.value
+          : this.extractedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WhatMattersExtractionRow(')
+          ..write('id: $id, ')
+          ..write('sourceProse: $sourceProse, ')
+          ..write('extractionJson: $extractionJson, ')
+          ..write('extractedAt: $extractedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, sourceProse, extractionJson, extractedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is WhatMattersExtractionRow &&
+          other.id == this.id &&
+          other.sourceProse == this.sourceProse &&
+          other.extractionJson == this.extractionJson &&
+          other.extractedAt == this.extractedAt);
+}
+
+class WhatMattersExtractionsCompanion
+    extends UpdateCompanion<WhatMattersExtractionRow> {
+  final Value<int> id;
+  final Value<String> sourceProse;
+  final Value<String> extractionJson;
+  final Value<DateTime> extractedAt;
+  const WhatMattersExtractionsCompanion({
+    this.id = const Value.absent(),
+    this.sourceProse = const Value.absent(),
+    this.extractionJson = const Value.absent(),
+    this.extractedAt = const Value.absent(),
+  });
+  WhatMattersExtractionsCompanion.insert({
+    this.id = const Value.absent(),
+    required String sourceProse,
+    required String extractionJson,
+    required DateTime extractedAt,
+  }) : sourceProse = Value(sourceProse),
+       extractionJson = Value(extractionJson),
+       extractedAt = Value(extractedAt);
+  static Insertable<WhatMattersExtractionRow> custom({
+    Expression<int>? id,
+    Expression<String>? sourceProse,
+    Expression<String>? extractionJson,
+    Expression<DateTime>? extractedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (sourceProse != null) 'source_prose': sourceProse,
+      if (extractionJson != null) 'extraction_json': extractionJson,
+      if (extractedAt != null) 'extracted_at': extractedAt,
+    });
+  }
+
+  WhatMattersExtractionsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? sourceProse,
+    Value<String>? extractionJson,
+    Value<DateTime>? extractedAt,
+  }) {
+    return WhatMattersExtractionsCompanion(
+      id: id ?? this.id,
+      sourceProse: sourceProse ?? this.sourceProse,
+      extractionJson: extractionJson ?? this.extractionJson,
+      extractedAt: extractedAt ?? this.extractedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (sourceProse.present) {
+      map['source_prose'] = Variable<String>(sourceProse.value);
+    }
+    if (extractionJson.present) {
+      map['extraction_json'] = Variable<String>(extractionJson.value);
+    }
+    if (extractedAt.present) {
+      map['extracted_at'] = Variable<DateTime>(extractedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WhatMattersExtractionsCompanion(')
+          ..write('id: $id, ')
+          ..write('sourceProse: $sourceProse, ')
+          ..write('extractionJson: $extractionJson, ')
+          ..write('extractedAt: $extractedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2528,6 +2980,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $WhatMattersCacheTable whatMattersCache = $WhatMattersCacheTable(
     this,
   );
+  late final $WhatMattersExtractionsTable whatMattersExtractions =
+      $WhatMattersExtractionsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2540,6 +2994,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     dismissedItems,
     inferenceAttempts,
     whatMattersCache,
+    whatMattersExtractions,
   ];
 }
 
@@ -2552,6 +3007,8 @@ typedef $$BriefingRunsTableCreateCompanionBuilder =
       Value<String?> promptVersion,
       Value<String?> error,
       Value<String?> framingLine,
+      Value<String?> whatMattersProse,
+      Value<String?> whatMattersExtractionJson,
     });
 typedef $$BriefingRunsTableUpdateCompanionBuilder =
     BriefingRunsCompanion Function({
@@ -2562,6 +3019,8 @@ typedef $$BriefingRunsTableUpdateCompanionBuilder =
       Value<String?> promptVersion,
       Value<String?> error,
       Value<String?> framingLine,
+      Value<String?> whatMattersProse,
+      Value<String?> whatMattersExtractionJson,
     });
 
 final class $$BriefingRunsTableReferences
@@ -2668,6 +3127,16 @@ class $$BriefingRunsTableFilterComposer
 
   ColumnFilters<String> get framingLine => $composableBuilder(
     column: $table.framingLine,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get whatMattersProse => $composableBuilder(
+    column: $table.whatMattersProse,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get whatMattersExtractionJson => $composableBuilder(
+    column: $table.whatMattersExtractionJson,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2790,6 +3259,16 @@ class $$BriefingRunsTableOrderingComposer
     column: $table.framingLine,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get whatMattersProse => $composableBuilder(
+    column: $table.whatMattersProse,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get whatMattersExtractionJson => $composableBuilder(
+    column: $table.whatMattersExtractionJson,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$BriefingRunsTableAnnotationComposer
@@ -2825,6 +3304,16 @@ class $$BriefingRunsTableAnnotationComposer
 
   GeneratedColumn<String> get framingLine => $composableBuilder(
     column: $table.framingLine,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get whatMattersProse => $composableBuilder(
+    column: $table.whatMattersProse,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get whatMattersExtractionJson => $composableBuilder(
+    column: $table.whatMattersExtractionJson,
     builder: (column) => column,
   );
 
@@ -2944,6 +3433,8 @@ class $$BriefingRunsTableTableManager
                 Value<String?> promptVersion = const Value.absent(),
                 Value<String?> error = const Value.absent(),
                 Value<String?> framingLine = const Value.absent(),
+                Value<String?> whatMattersProse = const Value.absent(),
+                Value<String?> whatMattersExtractionJson = const Value.absent(),
               }) => BriefingRunsCompanion(
                 id: id,
                 startedAt: startedAt,
@@ -2952,6 +3443,8 @@ class $$BriefingRunsTableTableManager
                 promptVersion: promptVersion,
                 error: error,
                 framingLine: framingLine,
+                whatMattersProse: whatMattersProse,
+                whatMattersExtractionJson: whatMattersExtractionJson,
               ),
           createCompanionCallback:
               ({
@@ -2962,6 +3455,8 @@ class $$BriefingRunsTableTableManager
                 Value<String?> promptVersion = const Value.absent(),
                 Value<String?> error = const Value.absent(),
                 Value<String?> framingLine = const Value.absent(),
+                Value<String?> whatMattersProse = const Value.absent(),
+                Value<String?> whatMattersExtractionJson = const Value.absent(),
               }) => BriefingRunsCompanion.insert(
                 id: id,
                 startedAt: startedAt,
@@ -2970,6 +3465,8 @@ class $$BriefingRunsTableTableManager
                 promptVersion: promptVersion,
                 error: error,
                 framingLine: framingLine,
+                whatMattersProse: whatMattersProse,
+                whatMattersExtractionJson: whatMattersExtractionJson,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -4582,6 +5079,206 @@ typedef $$WhatMattersCacheTableProcessedTableManager =
       WhatMattersCacheData,
       PrefetchHooks Function()
     >;
+typedef $$WhatMattersExtractionsTableCreateCompanionBuilder =
+    WhatMattersExtractionsCompanion Function({
+      Value<int> id,
+      required String sourceProse,
+      required String extractionJson,
+      required DateTime extractedAt,
+    });
+typedef $$WhatMattersExtractionsTableUpdateCompanionBuilder =
+    WhatMattersExtractionsCompanion Function({
+      Value<int> id,
+      Value<String> sourceProse,
+      Value<String> extractionJson,
+      Value<DateTime> extractedAt,
+    });
+
+class $$WhatMattersExtractionsTableFilterComposer
+    extends Composer<_$AppDatabase, $WhatMattersExtractionsTable> {
+  $$WhatMattersExtractionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sourceProse => $composableBuilder(
+    column: $table.sourceProse,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get extractionJson => $composableBuilder(
+    column: $table.extractionJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get extractedAt => $composableBuilder(
+    column: $table.extractedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$WhatMattersExtractionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $WhatMattersExtractionsTable> {
+  $$WhatMattersExtractionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sourceProse => $composableBuilder(
+    column: $table.sourceProse,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get extractionJson => $composableBuilder(
+    column: $table.extractionJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get extractedAt => $composableBuilder(
+    column: $table.extractedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$WhatMattersExtractionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $WhatMattersExtractionsTable> {
+  $$WhatMattersExtractionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get sourceProse => $composableBuilder(
+    column: $table.sourceProse,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get extractionJson => $composableBuilder(
+    column: $table.extractionJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get extractedAt => $composableBuilder(
+    column: $table.extractedAt,
+    builder: (column) => column,
+  );
+}
+
+class $$WhatMattersExtractionsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $WhatMattersExtractionsTable,
+          WhatMattersExtractionRow,
+          $$WhatMattersExtractionsTableFilterComposer,
+          $$WhatMattersExtractionsTableOrderingComposer,
+          $$WhatMattersExtractionsTableAnnotationComposer,
+          $$WhatMattersExtractionsTableCreateCompanionBuilder,
+          $$WhatMattersExtractionsTableUpdateCompanionBuilder,
+          (
+            WhatMattersExtractionRow,
+            BaseReferences<
+              _$AppDatabase,
+              $WhatMattersExtractionsTable,
+              WhatMattersExtractionRow
+            >,
+          ),
+          WhatMattersExtractionRow,
+          PrefetchHooks Function()
+        > {
+  $$WhatMattersExtractionsTableTableManager(
+    _$AppDatabase db,
+    $WhatMattersExtractionsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$WhatMattersExtractionsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$WhatMattersExtractionsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$WhatMattersExtractionsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> sourceProse = const Value.absent(),
+                Value<String> extractionJson = const Value.absent(),
+                Value<DateTime> extractedAt = const Value.absent(),
+              }) => WhatMattersExtractionsCompanion(
+                id: id,
+                sourceProse: sourceProse,
+                extractionJson: extractionJson,
+                extractedAt: extractedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String sourceProse,
+                required String extractionJson,
+                required DateTime extractedAt,
+              }) => WhatMattersExtractionsCompanion.insert(
+                id: id,
+                sourceProse: sourceProse,
+                extractionJson: extractionJson,
+                extractedAt: extractedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$WhatMattersExtractionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $WhatMattersExtractionsTable,
+      WhatMattersExtractionRow,
+      $$WhatMattersExtractionsTableFilterComposer,
+      $$WhatMattersExtractionsTableOrderingComposer,
+      $$WhatMattersExtractionsTableAnnotationComposer,
+      $$WhatMattersExtractionsTableCreateCompanionBuilder,
+      $$WhatMattersExtractionsTableUpdateCompanionBuilder,
+      (
+        WhatMattersExtractionRow,
+        BaseReferences<
+          _$AppDatabase,
+          $WhatMattersExtractionsTable,
+          WhatMattersExtractionRow
+        >,
+      ),
+      WhatMattersExtractionRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4600,4 +5297,9 @@ class $AppDatabaseManager {
       $$InferenceAttemptsTableTableManager(_db, _db.inferenceAttempts);
   $$WhatMattersCacheTableTableManager get whatMattersCache =>
       $$WhatMattersCacheTableTableManager(_db, _db.whatMattersCache);
+  $$WhatMattersExtractionsTableTableManager get whatMattersExtractions =>
+      $$WhatMattersExtractionsTableTableManager(
+        _db,
+        _db.whatMattersExtractions,
+      );
 }
