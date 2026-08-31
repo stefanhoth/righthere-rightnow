@@ -16,6 +16,7 @@ import 'package:righthere_rightnow/domain/agenda_item.dart';
 import 'package:righthere_rightnow/domain/priority.dart';
 import 'package:righthere_rightnow/domain/ranked_agenda.dart';
 import 'package:righthere_rightnow/domain/task_due.dart';
+import 'package:righthere_rightnow/domain/what_matters_extraction.dart';
 import 'package:righthere_rightnow/inference/inference_engine.dart';
 import 'package:righthere_rightnow/inference/inference_outcome.dart';
 
@@ -32,6 +33,8 @@ class _FakeInferenceEngine implements InferenceEngine {
   final String? response;
   final Exception? error;
 
+  String? lastPrompt;
+
   @override
   Future<EngineAvailability> availability() async =>
       available ? EngineAvailability.ready : EngineAvailability.notReady;
@@ -42,6 +45,7 @@ class _FakeInferenceEngine implements InferenceEngine {
     Duration timeout = Duration.zero,
     int? maxOutputTokens,
   }) async {
+    lastPrompt = prompt;
     if (error != null) {
       throw error!;
     }
@@ -154,10 +158,12 @@ void main() {
   tearDown(() => database.close());
 
   test('a valid model ranking is applied and persisted', () async {
-    final ids = fallbackResult.agenda.items.map((i) => i.id).toList().reversed;
-    final reversedNumbers = [
-      for (var n = fallbackResult.agenda.items.length; n >= 1; n--) n,
-    ];
+    final count = fallbackResult.agenda.items.length;
+    final reversedNumbers = [for (var n = count; n >= 1; n--) n];
+    final reversedIds = fallbackResult.agenda.items
+        .map((i) => i.id)
+        .toList()
+        .reversed;
     final reranker = ModelReranker(
       engine: _FakeInferenceEngine(response: jsonEncode(reversedNumbers)),
       database: database,
@@ -169,7 +175,7 @@ void main() {
     final reranked = result.valueOrNull!;
     expect(reranked.agenda.rankedBy, RankedBy.model);
     expect(reranked.agenda.promptVersion, 'v1');
-    expect(reranked.agenda.items.map((item) => item.id), ids);
+    expect(reranked.agenda.items.map((item) => item.id), reversedIds);
 
     final storedRun = await (database.select(
       database.briefingRuns,
@@ -238,13 +244,36 @@ void main() {
     },
   );
 
-  test("the ranking answer fits inside ML Kit's hard ceiling", () async {
-    // "maxOutputTokens must be between 1 and 256" -- asking for more throws,
-    // so the bound is a clamp, not just a budget. Item numbers are what make
-    // 25 items fit inside 256 at all; 25 ids would not.
-    expect(rankingMaxOutputTokens(25), lessThanOrEqualTo(256));
+  test('a stored extraction reaches the ranking prompt', () async {
+    await database.saveWhatMattersExtraction(
+      extraction: const WhatMattersExtraction(
+        projects: [],
+        neverDecays: ['renew passport'],
+      ),
+      sourceProse: 'keep the passport current',
+      extractedAt: DateTime.utc(2026, 8, 31),
+    );
+    final engine = _FakeInferenceEngine(
+      response: jsonEncode([
+        for (var n = 1; n <= fallbackResult.agenda.items.length; n++) n,
+      ]),
+    );
+
+    await ModelReranker(
+      engine: engine,
+      database: database,
+    ).rerank(fallbackResult);
+
+    expect(engine.lastPrompt, contains('working toward'));
+    expect(engine.lastPrompt, contains('renew passport'));
+  });
+
+  test('the ranking output budget scales, bounded against a runaway', () {
+    // A permutation of number "n" values -- small. LiteRT-LM has no ML
+    // Kit-style 256 cap, so the bound here only stops a runaway generation
+    // eating the context window.
     expect(rankingMaxOutputTokens(25), greaterThan(rankingMaxOutputTokens(5)));
-    expect(rankingMaxOutputTokens(500), 256);
+    expect(rankingMaxOutputTokens(1000), lessThanOrEqualTo(1024));
   });
 
   test('an unusable answer is kept, so it can be diagnosed', () async {
