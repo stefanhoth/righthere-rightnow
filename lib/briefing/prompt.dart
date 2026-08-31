@@ -25,7 +25,16 @@ const defaultPromptText = '''
 You are ranking a person's Daily Agenda: a list of Agenda Items competing
 for their attention today. Each item has a number "n" and the features a
 deterministic ranker would use -- due dates, overdue days, proximity,
-priority, and similar.
+priority, labels, and similar.
+
+Two things the raw features get wrong on their own:
+
+- A recurring task shown as overdue has almost always just regenerated this
+  morning. Its "overdue" days are how often it repeats, not a deadline
+  slipping, so a recurring chore is usually low-stakes even when overdue --
+  unless it clearly serves something that matters.
+- A low-priority task with no project and no near deadline is background
+  maintenance. Rank it below anything with a real consequence today.
 
 Decide the order these items deserve attention today, most important first.
 ''';
