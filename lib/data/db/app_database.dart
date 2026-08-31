@@ -3,8 +3,10 @@ import 'package:drift_flutter/drift_flutter.dart';
 import 'package:righthere_rightnow/briefing/inference_health.dart';
 import 'package:righthere_rightnow/briefing/inference_status.dart';
 import 'package:righthere_rightnow/briefing/prompt.dart';
+import 'package:righthere_rightnow/briefing/what_matters_extraction.dart';
 import 'package:righthere_rightnow/data/what_matters/what_matters_document.dart';
 import 'package:righthere_rightnow/domain/ranked_agenda.dart';
+import 'package:righthere_rightnow/domain/what_matters_extraction.dart';
 import 'package:righthere_rightnow/inference/inference_engine.dart';
 import 'package:righthere_rightnow/inference/inference_outcome.dart';
 
@@ -25,6 +27,13 @@ class BriefingRuns extends Table {
   /// attempt -- null until then, and forever if inference never succeeds
   /// for this run.
   TextColumn get framingLine => text().nullable()();
+
+  /// The What Matters prose and its extraction as this run saw them
+  /// (ADR-0008) -- snapshotted so a replayed day is scored against the
+  /// priorities that were current then, not today's. Neither is
+  /// backfillable. Null when no What Matters document was configured.
+  TextColumn get whatMattersProse => text().nullable()();
+  TextColumn get whatMattersExtractionJson => text().nullable()();
 }
 
 /// One Agenda Item as a Briefing Run saw it: the replay input for later
@@ -120,6 +129,21 @@ class WhatMattersCache extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+/// The last structure the model extracted from the What Matters prose
+/// (ADR-0008), with the exact prose it came from so a re-extraction only
+/// happens when the document has actually changed. One row, at [id] 0. The
+/// deterministic ranker reads [extractionJson]; it never sees the prose.
+@DataClassName('WhatMattersExtractionRow')
+class WhatMattersExtractions extends Table {
+  IntColumn get id => integer().withDefault(const Constant(0))();
+  TextColumn get sourceProse => text()();
+  TextColumn get extractionJson => text()();
+  DateTimeColumn get extractedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 @DriftDatabase(
   tables: [
     BriefingRuns,
@@ -129,6 +153,7 @@ class WhatMattersCache extends Table {
     DismissedItems,
     InferenceAttempts,
     WhatMattersCache,
+    WhatMattersExtractions,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -146,7 +171,7 @@ class AppDatabase extends _$AppDatabase {
       const DriftDatabaseOptions(storeDateTimeAsText: true);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -166,6 +191,11 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 6) {
         await m.createTable(whatMattersCache);
+      }
+      if (from < 7) {
+        await m.createTable(whatMattersExtractions);
+        await m.addColumn(briefingRuns, briefingRuns.whatMattersProse);
+        await m.addColumn(briefingRuns, briefingRuns.whatMattersExtractionJson);
       }
     },
   );
@@ -430,6 +460,49 @@ class AppDatabase extends _$AppDatabase {
         id: const Value(0),
         prose: prose,
         fetchedAt: fetchedAt,
+      ),
+    );
+  }
+
+  /// The last extraction the model produced, with the prose it came from, or
+  /// null if none has ever succeeded.
+  Future<StoredWhatMattersExtraction?> storedWhatMattersExtraction() async {
+    final row = await (select(
+      whatMattersExtractions,
+    )..where((e) => e.id.equals(0))).getSingleOrNull();
+    if (row == null) {
+      return null;
+    }
+    return StoredWhatMattersExtraction(
+      extraction: whatMattersExtractionFromJson(row.extractionJson),
+      sourceProse: row.sourceProse,
+      extractedAt: row.extractedAt,
+    );
+  }
+
+  /// The stored extraction's raw JSON, for snapshotting a run without a
+  /// parse-and-reserialise round trip. Null if none has ever succeeded.
+  Future<String?> storedWhatMattersExtractionJson() async {
+    final row = await (select(
+      whatMattersExtractions,
+    )..where((e) => e.id.equals(0))).getSingleOrNull();
+    return row?.extractionJson;
+  }
+
+  /// Replaces the stored extraction. Only ever called after a complete parse
+  /// (ADR-0008): a partial extraction never reaches here, so the previous
+  /// one is never overwritten by a worse one.
+  Future<void> saveWhatMattersExtraction({
+    required WhatMattersExtraction extraction,
+    required String sourceProse,
+    required DateTime extractedAt,
+  }) {
+    return into(whatMattersExtractions).insertOnConflictUpdate(
+      WhatMattersExtractionsCompanion.insert(
+        id: const Value(0),
+        sourceProse: sourceProse,
+        extractionJson: whatMattersExtractionToJson(extraction),
+        extractedAt: extractedAt,
       ),
     );
   }

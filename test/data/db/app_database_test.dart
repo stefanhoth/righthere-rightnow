@@ -5,6 +5,7 @@ import 'package:righthere_rightnow/briefing/inference_status.dart';
 import 'package:righthere_rightnow/briefing/prompt.dart';
 import 'package:righthere_rightnow/data/db/app_database.dart';
 import 'package:righthere_rightnow/domain/ranked_agenda.dart';
+import 'package:righthere_rightnow/domain/what_matters_extraction.dart';
 import 'package:righthere_rightnow/inference/inference_outcome.dart';
 
 void main() {
@@ -451,5 +452,80 @@ void main() {
       expect(rows, hasLength(1));
       expect(rows.single.prose, 'new');
     });
+  });
+
+  group('what matters extraction', () {
+    final extraction = WhatMattersExtraction(
+      projects: [
+        Project(
+          name: 'Tax return',
+          deadline: DateTime(2026, 10, 31),
+          sessionsNeeded: 4,
+        ),
+      ],
+      neverDecays: const ['call mum'],
+    );
+
+    test('is null until one is saved', () async {
+      expect(await db.storedWhatMattersExtraction(), isNull);
+      expect(await db.storedWhatMattersExtractionJson(), isNull);
+    });
+
+    test(
+      'a saved extraction reads back with its source prose and time',
+      () async {
+        await db.saveWhatMattersExtraction(
+          extraction: extraction,
+          sourceProse: '# What matters\n\nDo the taxes.',
+          extractedAt: DateTime.utc(2026, 8, 31, 6),
+        );
+
+        final stored = await db.storedWhatMattersExtraction();
+        expect(stored!.extraction, extraction);
+        expect(stored.sourceProse, '# What matters\n\nDo the taxes.');
+        expect(stored.extractedAt, DateTime.utc(2026, 8, 31, 6));
+        expect(
+          await db.storedWhatMattersExtractionJson(),
+          contains('Tax return'),
+        );
+      },
+    );
+
+    test('a second save replaces the first -- only ever one row', () async {
+      await db.saveWhatMattersExtraction(
+        extraction: WhatMattersExtraction.empty,
+        sourceProse: 'v1',
+        extractedAt: DateTime.utc(2026, 8, 30),
+      );
+      await db.saveWhatMattersExtraction(
+        extraction: extraction,
+        sourceProse: 'v2',
+        extractedAt: DateTime.utc(2026, 8, 31),
+      );
+
+      final rows = await db.select(db.whatMattersExtractions).get();
+      expect(rows, hasLength(1));
+      expect(rows.single.sourceProse, 'v2');
+    });
+  });
+
+  test('a Briefing Run snapshots the prose and extraction it saw', () async {
+    final runId = await db
+        .into(db.briefingRuns)
+        .insert(
+          BriefingRunsCompanion.insert(
+            startedAt: DateTime.utc(2026, 8, 31, 5, 30),
+            completedAt: DateTime.utc(2026, 8, 31, 5, 30, 5),
+            rankedBy: RankedBy.fallback,
+            whatMattersProse: const Value('# What matters'),
+            whatMattersExtractionJson: const Value('{"projects":[],"keep":[]}'),
+          ),
+        );
+
+    final row = await (db.select(
+      db.briefingRuns,
+    )..where((r) => r.id.equals(runId))).getSingle();
+    expect(row.whatMattersProse, '# What matters');
+    expect(row.whatMattersExtractionJson, '{"projects":[],"keep":[]}');
   });
 }

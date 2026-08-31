@@ -11,6 +11,7 @@ import 'package:righthere_rightnow/data/db/app_database.dart';
 import 'package:righthere_rightnow/data/db/candidate_item_json.dart';
 import 'package:righthere_rightnow/data/settings/todoist_token_storage.dart';
 import 'package:righthere_rightnow/data/todoist/todoist_client.dart';
+import 'package:righthere_rightnow/data/what_matters/what_matters_document.dart';
 import 'package:righthere_rightnow/data/what_matters/what_matters_repository.dart';
 import 'package:righthere_rightnow/domain/agenda_item.dart';
 import 'package:righthere_rightnow/domain/candidate_set.dart';
@@ -29,6 +30,7 @@ class BriefingRunResult {
     this.calendarPermissionDenied = false,
     this.error,
     this.framingLine,
+    this.whatMatters,
   });
 
   final int runId;
@@ -57,6 +59,11 @@ class BriefingRunResult {
   /// lock screen (ADR-0006): the Focus Pull posts before any model runs.
   final String? framingLine;
 
+  /// The What Matters prose this run worked from (fresh or last cached), or
+  /// null when none is configured. The app-open extraction pass reads this;
+  /// the snapshot of prose and extraction is written by the run itself.
+  final WhatMattersDocument? whatMatters;
+
   bool get isPartial => error != null;
 
   /// A copy with [agenda] and/or [framingLine] replaced -- the two things
@@ -75,6 +82,7 @@ class BriefingRunResult {
       calendarPermissionDenied: calendarPermissionDenied,
       error: error,
       framingLine: framingLine ?? this.framingLine,
+      whatMatters: whatMatters,
     );
   }
 }
@@ -114,9 +122,9 @@ class BriefingRunOrchestrator {
     final whatMattersFuture = whatMattersRepository.read();
     final commitmentsOutcome = await commitmentsFuture;
     final tasksOutcome = await tasksFuture;
-    // The prose is not consumed yet -- Task 4.5 extracts structure from it.
-    // For now the run refreshes the cache and folds a fetch failure into the
-    // partial-data state, exactly as a Todoist outage does.
+    // The run refreshes the cache and folds a fetch failure into the
+    // partial-data state, exactly as a Todoist outage does. The prose is
+    // consumed at app-open by the extraction pass (Task 4.5), not here.
     final whatMattersOutcome = await whatMattersFuture;
 
     // A dismissed Agenda Item is gone before ranking, not hidden after it:
@@ -146,12 +154,22 @@ class BriefingRunOrchestrator {
       ?whatMattersOutcome.error,
     ].join('; ');
 
+    // Snapshotted as the run saw them (ADR-0008), neither backfillable: the
+    // prose from this run's fetch, and whatever extraction the last app-open
+    // left in the cache. A changed document is re-extracted at app-open and
+    // affects the *next* run's snapshot, not this one.
+    final whatMattersProse = whatMattersOutcome.document?.prose;
+    final whatMattersExtractionJson = await database
+        .storedWhatMattersExtractionJson();
+
     final runId = await _persist(
       startedAt: startedAt,
       completedAt: completedAt,
       candidateSet: candidateSet,
       rankedItems: rankedItems,
       error: error.isEmpty ? null : error,
+      whatMattersProse: whatMattersProse,
+      whatMattersExtractionJson: whatMattersExtractionJson,
     );
 
     return BriefingRunResult(
@@ -163,6 +181,7 @@ class BriefingRunOrchestrator {
       completedAt: completedAt,
       calendarPermissionDenied: commitmentsOutcome.permissionDenied,
       error: error.isEmpty ? null : error,
+      whatMatters: whatMattersOutcome.document,
     );
   }
 
@@ -208,6 +227,8 @@ class BriefingRunOrchestrator {
     required CandidateSet candidateSet,
     required List<AgendaItem> rankedItems,
     required String? error,
+    required String? whatMattersProse,
+    required String? whatMattersExtractionJson,
   }) {
     return database.transaction(() async {
       final runId = await database
@@ -218,6 +239,8 @@ class BriefingRunOrchestrator {
               completedAt: completedAt,
               rankedBy: RankedBy.fallback,
               error: Value(error),
+              whatMattersProse: Value(whatMattersProse),
+              whatMattersExtractionJson: Value(whatMattersExtractionJson),
             ),
           );
 

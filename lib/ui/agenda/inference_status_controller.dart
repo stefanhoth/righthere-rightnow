@@ -31,6 +31,12 @@ class InferenceStatusController extends _$InferenceStatusController {
   void reset() => state = const InferenceStatus();
 
   static String? _note(InferenceWork work, InferenceOutcome<Object?> outcome) {
+    // Extraction is background housekeeping -- it does not change what is on
+    // screen this open (it feeds the *next* run), so it is never in the
+    // status line. It is still recorded as an attempt for the dev screen.
+    if (work == InferenceWork.extraction) {
+      return null;
+    }
     final isRanking = work == InferenceWork.ranking;
     return switch (outcome) {
       // A framing line that arrived speaks for itself; a model ranking does
