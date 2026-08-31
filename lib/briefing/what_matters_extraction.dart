@@ -28,24 +28,29 @@ String buildWhatMattersExtractionPrompt(String prose) {
       'and nothing else.\n\n'
       '1. Projects: long-horizon work with a deadline and a rough number of '
       'work sessions. Only include work the note frames this way.\n'
-      '2. Keep: short phrases naming tasks or duties the person never wants '
-      'to let slide, however old they get.\n\n'
+      '2. Keep: tasks or duties the person never wants to let slide, however '
+      'old they get. Each as a short label of at most five words.\n\n'
       'Note:\n"""\n$prose\n"""\n\n'
       '$_contract';
 }
 
-/// ML Kit caps output at 256 tokens (see `rankingMaxOutputTokens`). A note
-/// with a handful of Projects and keep-phrases fits; a longer answer is
-/// truncated and fails to parse, which is treated as "no new extraction".
-const whatMattersExtractionMaxOutputTokens = 256;
+/// Room for a real extraction -- a handful of Projects and up to ~15 keep
+/// labels. Not the model's full context ceiling; a longer answer than this
+/// is almost certainly the model looping, and truncating it makes the parse
+/// fail, which is treated as "no new extraction".
+const whatMattersExtractionMaxOutputTokens = 1024;
 
 const _contract =
     'Respond with one JSON object and no other text:\n'
     '{"projects":[{"name":"...","deadline":"YYYY-MM-DD","sessions":N}],'
     '"keep":["...","..."]}\n'
-    'Use [] for either list if the note names none. "sessions" is a whole '
-    'number of at least 1. Do not invent a deadline the note does not give -- '
-    'omit that Project instead.';
+    'Rules:\n'
+    '- Use [] for either list if the note names none.\n'
+    '- "sessions" is a whole number of at least 1.\n'
+    '- Do not invent a deadline the note does not give -- omit that Project '
+    'instead.\n'
+    '- At most 15 keep labels. Never repeat a label. Each label at most five '
+    'words.';
 
 final _fence = RegExp(r'^```(?:json)?\s*([\s\S]*?)\s*```$');
 final _isoDate = RegExp(r'^\d{4}-\d{2}-\d{2}$');
@@ -87,16 +92,32 @@ WhatMattersExtraction? parseWhatMattersExtraction(String response) {
     projects.add(project);
   }
 
+  // Deduplicate case-insensitively, keeping first occurrence: a model that
+  // loops ("meet with every peer-EM" x20) collapses to one entry rather
+  // than poisoning the never-decays match.
   final neverDecays = <String>[];
+  final seen = <String>{};
   for (final entry in rawKeep) {
     if (entry is! String || entry.trim().isEmpty) {
       return null;
     }
-    neverDecays.add(entry.trim());
+    final label = entry.trim();
+    if (seen.add(label.toLowerCase())) {
+      neverDecays.add(label);
+    }
+  }
+
+  // A real never-decays list is short (ADR-0007: if it is long, the entries
+  // are not actually consequential). Well past that is a runaway answer, not
+  // an extraction -- reject it and keep the previous one.
+  if (neverDecays.length > _maxKeepEntries) {
+    return null;
   }
 
   return WhatMattersExtraction(projects: projects, neverDecays: neverDecays);
 }
+
+const _maxKeepEntries = 25;
 
 Project? _projectFrom(Object? entry) {
   if (entry is! Map<String, dynamic>) {

@@ -57,24 +57,33 @@ final class BriefingRunOrchestratorProvider
 String _$briefingRunOrchestratorHash() =>
     r'ce95c09662efedf6fd84b0ec493aa1435ea7f64f';
 
-/// Kept alive: [BuiltInAiEngine] loads and caches the model once inference
-/// is first requested (documented cold start of up to ~10s) -- recreating
-/// it on every app open would pay that cost every time.
+/// Kept alive: [GemmaLiteRtEngine] loads and caches ~3.7 GB of model weights
+/// the first time inference is requested -- recreating it on every app open
+/// would pay that cost every time.
+///
+/// `BuiltInAiEngine` (Gemini Nano) stays in the tree as the ADR-0004
+/// fallback; see DECISIONS.md (2026-08-31) for why it is not the default.
 
 @ProviderFor(inferenceEngine)
 final inferenceEngineProvider = InferenceEngineProvider._();
 
-/// Kept alive: [BuiltInAiEngine] loads and caches the model once inference
-/// is first requested (documented cold start of up to ~10s) -- recreating
-/// it on every app open would pay that cost every time.
+/// Kept alive: [GemmaLiteRtEngine] loads and caches ~3.7 GB of model weights
+/// the first time inference is requested -- recreating it on every app open
+/// would pay that cost every time.
+///
+/// `BuiltInAiEngine` (Gemini Nano) stays in the tree as the ADR-0004
+/// fallback; see DECISIONS.md (2026-08-31) for why it is not the default.
 
 final class InferenceEngineProvider
     extends
         $FunctionalProvider<InferenceEngine, InferenceEngine, InferenceEngine>
     with $Provider<InferenceEngine> {
-  /// Kept alive: [BuiltInAiEngine] loads and caches the model once inference
-  /// is first requested (documented cold start of up to ~10s) -- recreating
-  /// it on every app open would pay that cost every time.
+  /// Kept alive: [GemmaLiteRtEngine] loads and caches ~3.7 GB of model weights
+  /// the first time inference is requested -- recreating it on every app open
+  /// would pay that cost every time.
+  ///
+  /// `BuiltInAiEngine` (Gemini Nano) stays in the tree as the ADR-0004
+  /// fallback; see DECISIONS.md (2026-08-31) for why it is not the default.
   InferenceEngineProvider._()
     : super(
         from: null,
@@ -108,7 +117,7 @@ final class InferenceEngineProvider
   }
 }
 
-String _$inferenceEngineHash() => r'e4c0e6d23ae873fda4a6e75bf5b9e6988f4bde85';
+String _$inferenceEngineHash() => r'bf7ad61a8c2e4d96e5324d98183a9be486889774';
 
 @ProviderFor(modelReranker)
 final modelRerankerProvider = ModelRerankerProvider._();

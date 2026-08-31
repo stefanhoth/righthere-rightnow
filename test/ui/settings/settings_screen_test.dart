@@ -9,6 +9,7 @@ import 'package:righthere_rightnow/data/settings/what_matters_settings_storage.d
 import 'package:righthere_rightnow/data/todoist/todoist_client.dart';
 import 'package:righthere_rightnow/data/what_matters/what_matters_client.dart';
 import 'package:righthere_rightnow/data/what_matters/what_matters_document.dart';
+import 'package:righthere_rightnow/inference/gemma_lite_rt_engine.dart';
 import 'package:righthere_rightnow/ui/settings/settings_controller.dart';
 import 'package:righthere_rightnow/ui/settings/settings_screen.dart';
 
@@ -96,6 +97,7 @@ Future<void> _pumpSettingsScreen(
   bool whatMattersReadable = true,
   WhatMattersConnection? existingWhatMatters,
   WhatMattersDocument? cachedWhatMatters,
+  GemmaModelStatus modelStatus = const GemmaModelStatus(),
 }) async {
   // The settings list is long; a tall surface keeps every section on screen
   // so tests can tap buttons without fighting the scroll view.
@@ -122,6 +124,7 @@ Future<void> _pumpSettingsScreen(
         cachedWhatMattersProvider.overrideWith(
           (ref) async => cachedWhatMatters,
         ),
+        gemmaModelStatusProvider.overrideWith((ref) async => modelStatus),
         calendarPermissionStatusProvider.overrideWith(
           (ref) async => CalendarPermissionStatus.granted,
         ),
@@ -407,6 +410,43 @@ void main() {
         findsOneWidget,
       );
       expect(find.byKey(const Key('whatMattersBaseUrlField')), findsOneWidget);
+    });
+  });
+
+  group('Model', () {
+    testWidgets('names the push target when no model file is present', (
+      tester,
+    ) async {
+      await _pumpSettingsScreen(
+        tester,
+        tokenIsValid: true,
+        modelStatus: const GemmaModelStatus(
+          expectedPath:
+              '/sdcard/Android/data/app/files/models/gemma4-e2b.litertlm',
+        ),
+      );
+
+      expect(find.textContaining('No model file'), findsOneWidget);
+      expect(
+        find.text('/sdcard/Android/data/app/files/models/gemma4-e2b.litertlm'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('confirms the model is in place with its size', (tester) async {
+      await _pumpSettingsScreen(
+        tester,
+        tokenIsValid: true,
+        modelStatus: const GemmaModelStatus(
+          expectedPath: '/x/gemma4-e2b.litertlm',
+          sizeBytes: 2147000000,
+        ),
+      );
+
+      expect(
+        find.textContaining('Gemma 4 model in place (2.0 GB).'),
+        findsOneWidget,
+      );
     });
   });
 }
