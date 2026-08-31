@@ -17,6 +17,10 @@ class _FakeSecureStoragePlatform extends FlutterSecureStoragePlatform {
     required String value,
     required Map<String, String> options,
   }) async {
+    // A real secure-storage write crosses a platform channel and yields to
+    // the event loop. Model that here: an unwatched auto-dispose controller
+    // is torn down across this gap, which is exactly the bug being guarded.
+    await Future<void>.delayed(Duration.zero);
     _values[key] = value;
   }
 
