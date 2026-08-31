@@ -11,6 +11,7 @@ import 'package:righthere_rightnow/domain/agenda_item.dart';
 import 'package:righthere_rightnow/ui/agenda/agenda_controller.dart';
 import 'package:righthere_rightnow/ui/agenda/agenda_pill.dart';
 import 'package:righthere_rightnow/ui/agenda/briefing_summary_sheet.dart';
+import 'package:righthere_rightnow/ui/agenda/ranker_indicator.dart';
 import 'package:righthere_rightnow/ui/agenda/source_link.dart';
 import 'package:righthere_rightnow/ui/agenda/task_title.dart';
 import 'package:righthere_rightnow/ui/settings/settings_screen.dart';
@@ -33,6 +34,11 @@ class DailyAgendaScreen extends ConsumerWidget {
       lastRunCompletedAt: lastRunCompletedAt,
       clock: DateTime.now,
     );
+    // One banner, not two: a 26h silence is the deeper fault, so it speaks
+    // alone when both would fire.
+    final showModelFailingBanner =
+        !showStaleBanner &&
+        (ref.watch(modelRankingFailingProvider).value ?? false);
 
     return Scaffold(
       appBar: AppBar(
@@ -55,6 +61,7 @@ class DailyAgendaScreen extends ConsumerWidget {
                 MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
               ),
             ),
+          if (showModelFailingBanner) const _ModelFailingBanner(),
           Expanded(
             child: RefreshIndicator(
               onRefresh: () =>
@@ -110,6 +117,40 @@ class _StaleBanner extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Shown only once the model has failed to rank at several consecutive
+/// app-opens (Task 4.3). One bad morning never brings it up; sustained
+/// breakage always does. The quiet [RankerIndicator] already names the
+/// ranker on every ordinary run -- this is for when that has stopped being
+/// a choice.
+class _ModelFailingBanner extends StatelessWidget {
+  const _ModelFailingBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      key: const Key('modelFailingBanner'),
+      color: scheme.errorContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Icon(Icons.smart_toy_outlined, color: scheme.onErrorContainer),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'The model has not ranked your agenda for several days. '
+                'Rules are ordering it in the meantime.',
+                style: TextStyle(color: scheme.onErrorContainer),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -187,6 +228,7 @@ class _AgendaBody extends ConsumerWidget {
     // commentary about the Daily Agenda, not part of it.
     final header = Column(
       children: [
+        RankerIndicator(rankedBy: result.agenda.rankedBy),
         if (launchRunId != null) const _OpenedFromNotificationBanner(),
         if (result.isPartial) _PartialDataBanner(message: result.error!),
         if (result.allDayCommitments.isNotEmpty)

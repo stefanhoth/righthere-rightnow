@@ -112,6 +112,7 @@ Future<void> _pumpAgenda(
   DateTime? lastBriefingRunCompletedAt,
   AppDatabase? database,
   SourceOpener? sourceOpener,
+  bool modelRankingFailing = false,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
@@ -124,6 +125,9 @@ Future<void> _pumpAgenda(
         ),
         lastBriefingRunCompletedAtProvider.overrideWith(
           (ref) async => lastBriefingRunCompletedAt,
+        ),
+        modelRankingFailingProvider.overrideWith(
+          (ref) async => modelRankingFailing,
         ),
         inferenceEngineProvider.overrideWithValue(_FakeUnavailableEngine()),
         if (database != null) appDatabaseProvider.overrideWithValue(database),
@@ -170,6 +174,72 @@ void main() {
     expect(find.text('File taxes'), findsOneWidget);
     await _openSummarySheet(tester);
     expect(find.byKey(const Key('lastRunTime')), findsOneWidget);
+  });
+
+  group('which ranker ran (Task 4.3)', () {
+    BriefingRunResult resultRankedBy(RankedBy rankedBy) => BriefingRunResult(
+      runId: 1,
+      candidateItems: const [],
+      agenda: RankedAgenda(
+        items: [_commitment(id: 'cal:standup')],
+        rankedBy: rankedBy,
+      ),
+      allDayCommitments: const [],
+      startedAt: DateTime(2026, 8, 26, 9),
+      completedAt: DateTime(2026, 8, 26, 9, 0, 5),
+    );
+
+    testWidgets('the indicator names the deterministic ranker before the '
+        'model has answered', (tester) async {
+      await _pumpAgenda(tester, resultRankedBy(RankedBy.fallback));
+
+      expect(find.byKey(const Key('rankerIndicator')), findsOneWidget);
+      expect(find.text('Ranked by rules'), findsOneWidget);
+    });
+
+    testWidgets('the indicator names the model once it has re-ranked', (
+      tester,
+    ) async {
+      await _pumpAgenda(tester, resultRankedBy(RankedBy.model));
+
+      expect(find.byKey(const Key('rankerIndicator')), findsOneWidget);
+      expect(find.text('Ranked by the model'), findsOneWidget);
+    });
+
+    testWidgets('no breakage banner after a single fallback run', (
+      tester,
+    ) async {
+      await _pumpAgenda(tester, resultRankedBy(RankedBy.fallback));
+
+      expect(find.byKey(const Key('modelFailingBanner')), findsNothing);
+    });
+
+    testWidgets('the breakage banner shows once the model has failed for '
+        'several runs', (tester) async {
+      await _pumpAgenda(
+        tester,
+        resultRankedBy(RankedBy.fallback),
+        modelRankingFailing: true,
+      );
+
+      expect(find.byKey(const Key('modelFailingBanner')), findsOneWidget);
+      expect(find.byKey(const Key('rankerIndicator')), findsOneWidget);
+    });
+
+    testWidgets('the stale banner speaks alone -- the model banner defers to '
+        'it', (tester) async {
+      await _pumpAgenda(
+        tester,
+        resultRankedBy(RankedBy.fallback),
+        lastBriefingRunCompletedAt: DateTime.now().subtract(
+          const Duration(hours: 48),
+        ),
+        modelRankingFailing: true,
+      );
+
+      expect(find.byKey(const Key('staleBanner')), findsOneWidget);
+      expect(find.byKey(const Key('modelFailingBanner')), findsNothing);
+    });
   });
 
   testWidgets('a Commitment pill names the day it falls on', (tester) async {
