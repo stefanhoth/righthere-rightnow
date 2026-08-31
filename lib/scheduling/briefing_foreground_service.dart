@@ -44,6 +44,13 @@ Future<void> startBriefingService() async {
   }
   await FlutterForegroundTask.startService(
     serviceId: _serviceId,
+    // Since Android 14 a `dataSync` service must also name its type at
+    // runtime, not just in the manifest (Task 2.3). Without this,
+    // flutter_foreground_task 11 starts the service with no type: the OS
+    // logs "does not have any types" and, from a cold process in deep Doze
+    // -- exactly the morning Briefing Run -- refuses or immediately tears
+    // it down, so the Focus Pull never posts.
+    serviceTypes: const [ForegroundServiceTypes.dataSync],
     notificationTitle: 'Building your Daily Agenda',
     notificationText: 'This will only take a moment.',
     callback: briefingServiceCallback,
