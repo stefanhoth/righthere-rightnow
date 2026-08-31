@@ -20,6 +20,10 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _tokenController = TextEditingController();
 
+  /// True once the user asks to replace a token that is already saved. A
+  /// fresh setup (no token yet) shows the editor without this.
+  bool _editingToken = false;
+
   @override
   void dispose() {
     _tokenController.dispose();
@@ -37,6 +41,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       batteryOptimizationStatusProvider,
     );
 
+    // A successful save collapses the editor back to the one-line summary.
+    // The confirmation moves to a SnackBar so it survives the collapse.
+    ref.listen(tokenEntryControllerProvider, (_, next) {
+      if (next != TokenEntryStatus.saved) {
+        return;
+      }
+      if (_editingToken) {
+        setState(() => _editingToken = false);
+      }
+      _tokenController.clear();
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Saved.')));
+    });
+
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
@@ -45,61 +63,37 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           Text('Todoist', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           storedToken.when(
-            data: (token) => Text(
-              token == null ? 'No token saved yet.' : 'A token is saved.',
-              key: const Key('storedTokenStatus'),
-            ),
+            data: (token) => token != null && !_editingToken
+                ? Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'A token is saved.',
+                          key: Key('storedTokenStatus'),
+                        ),
+                      ),
+                      TextButton(
+                        key: const Key('editTokenButton'),
+                        onPressed: () => setState(() => _editingToken = true),
+                        child: const Text('Replace'),
+                      ),
+                    ],
+                  )
+                : _TokenEditor(
+                    controller: _tokenController,
+                    entryStatus: entryStatus,
+                    showCancel: token != null,
+                    onVerifyAndSave: () => ref
+                        .read(tokenEntryControllerProvider.notifier)
+                        .verifyAndSave(_tokenController.text),
+                    onCancel: () => setState(() {
+                      _editingToken = false;
+                      _tokenController.clear();
+                    }),
+                  ),
             loading: () => const SizedBox.shrink(),
             error: (_, _) => const Text('Could not read the saved token.'),
           ),
-          const SizedBox(height: 8),
-          TextField(
-            key: const Key('tokenField'),
-            controller: _tokenController,
-            obscureText: true,
-            decoration: const InputDecoration(
-              labelText: 'Personal API token',
-              helperText: 'Todoist -> Settings -> Integrations -> Developer',
-            ),
-          ),
-          const SizedBox(height: 8),
-          FilledButton(
-            key: const Key('verifyAndSaveButton'),
-            onPressed: entryStatus == TokenEntryStatus.verifying
-                ? null
-                : () => ref
-                      .read(tokenEntryControllerProvider.notifier)
-                      .verifyAndSave(_tokenController.text),
-            child: entryStatus == TokenEntryStatus.verifying
-                ? const SizedBox(
-                    height: 16,
-                    width: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('Verify and save'),
-          ),
-          switch (entryStatus) {
-            TokenEntryStatus.invalid => const Padding(
-              padding: EdgeInsets.only(top: 8),
-              child: Text(
-                'That token was rejected by Todoist.',
-                key: Key('tokenStatusMessage'),
-              ),
-            ),
-            TokenEntryStatus.error => const Padding(
-              padding: EdgeInsets.only(top: 8),
-              child: Text(
-                'Could not reach Todoist. Try again.',
-                key: Key('tokenStatusMessage'),
-              ),
-            ),
-            TokenEntryStatus.saved => const Padding(
-              padding: EdgeInsets.only(top: 8),
-              child: Text('Saved.', key: Key('tokenStatusMessage')),
-            ),
-            TokenEntryStatus.idle ||
-            TokenEntryStatus.verifying => const SizedBox.shrink(),
-          },
           const SizedBox(height: 24),
           Text('Calendar', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
@@ -240,6 +234,92 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       CalendarPermissionStatus.notDetermined =>
         'Calendar access not yet requested.',
     };
+  }
+}
+
+/// The on-demand token editor: an obscured field plus a verify-and-save
+/// button. A fresh setup shows it inline with a "no token" line; replacing an
+/// existing token shows it with a Cancel button to collapse again.
+class _TokenEditor extends StatelessWidget {
+  const _TokenEditor({
+    required this.controller,
+    required this.entryStatus,
+    required this.showCancel,
+    required this.onVerifyAndSave,
+    required this.onCancel,
+  });
+
+  final TextEditingController controller;
+  final TokenEntryStatus entryStatus;
+  final bool showCancel;
+  final VoidCallback onVerifyAndSave;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final verifying = entryStatus == TokenEntryStatus.verifying;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (!showCancel) ...[
+          const Text('No token saved yet.', key: Key('storedTokenStatus')),
+          const SizedBox(height: 8),
+        ],
+        TextField(
+          key: const Key('tokenField'),
+          controller: controller,
+          obscureText: true,
+          decoration: const InputDecoration(
+            labelText: 'Personal API token',
+            helperText: 'Todoist -> Settings -> Integrations -> Developer',
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            FilledButton(
+              key: const Key('verifyAndSaveButton'),
+              onPressed: verifying ? null : onVerifyAndSave,
+              child: verifying
+                  ? const SizedBox(
+                      height: 16,
+                      width: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Verify and save'),
+            ),
+            if (showCancel) ...[
+              const SizedBox(width: 8),
+              TextButton(
+                key: const Key('cancelTokenEditButton'),
+                onPressed: verifying ? null : onCancel,
+                child: const Text('Cancel'),
+              ),
+            ],
+          ],
+        ),
+        switch (entryStatus) {
+          TokenEntryStatus.invalid => const Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: Text(
+              'That token was rejected by Todoist.',
+              key: Key('tokenStatusMessage'),
+            ),
+          ),
+          TokenEntryStatus.error => const Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: Text(
+              'Could not reach Todoist. Try again.',
+              key: Key('tokenStatusMessage'),
+            ),
+          ),
+          TokenEntryStatus.idle ||
+          TokenEntryStatus.verifying ||
+          TokenEntryStatus.saved => const SizedBox.shrink(),
+        },
+      ],
+    );
   }
 }
 
