@@ -4,6 +4,8 @@ import 'package:righthere_rightnow/data/battery_optimization.dart'
     as battery_optimization;
 import 'package:righthere_rightnow/data/providers.dart';
 import 'package:righthere_rightnow/data/settings/selected_calendars_storage.dart';
+import 'package:righthere_rightnow/data/settings/what_matters_settings_storage.dart';
+import 'package:righthere_rightnow/data/what_matters/what_matters_document.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'settings_controller.g.dart';
@@ -11,6 +13,18 @@ part 'settings_controller.g.dart';
 @riverpod
 Future<String?> storedTodoistToken(Ref ref) {
   return ref.watch(todoistTokenStorageProvider).read();
+}
+
+@riverpod
+Future<WhatMattersConnection?> storedWhatMattersConnection(Ref ref) {
+  return ref.watch(whatMattersSettingsStorageProvider).read();
+}
+
+/// The last good What Matters copy, so settings can show its age -- distinct
+/// from the connection, which may be set before the first successful fetch.
+@riverpod
+Future<WhatMattersDocument?> cachedWhatMatters(Ref ref) {
+  return ref.watch(appDatabaseProvider).cachedWhatMatters();
 }
 
 @riverpod
@@ -100,5 +114,57 @@ class TokenEntryController extends _$TokenEntryController {
     await ref.read(todoistTokenStorageProvider).write(token);
     ref.invalidate(storedTodoistTokenProvider);
     state = TokenEntryStatus.saved;
+  }
+}
+
+enum WhatMattersEntryStatus { idle, verifying, saved, invalid, error }
+
+/// Verifies a Nextcloud connection by fetching the file once, then persists
+/// it. Mirrors [TokenEntryController]: `invalid` is a rejected credential,
+/// `error` is a wrong path or an unreachable server.
+@riverpod
+class WhatMattersEntryController extends _$WhatMattersEntryController {
+  @override
+  WhatMattersEntryStatus build() => WhatMattersEntryStatus.idle;
+
+  Future<void> verifyAndSave({
+    required String baseUrl,
+    required String path,
+    required String username,
+    required String appPassword,
+  }) async {
+    state = WhatMattersEntryStatus.verifying;
+    final connection = WhatMattersConnection(
+      baseUrl: baseUrl.trim(),
+      path: path.trim(),
+      username: username.trim(),
+      appPassword: appPassword,
+    );
+
+    final bool isReadable;
+    try {
+      isReadable = await ref
+          .read(whatMattersClientProvider)
+          .verify(
+            baseUrl: connection.baseUrl,
+            path: connection.path,
+            username: connection.username,
+            appPassword: connection.appPassword,
+          );
+    } on Exception {
+      state = WhatMattersEntryStatus.error;
+      return;
+    }
+
+    if (!isReadable) {
+      state = WhatMattersEntryStatus.invalid;
+      return;
+    }
+
+    await ref.read(whatMattersSettingsStorageProvider).write(connection);
+    ref
+      ..invalidate(storedWhatMattersConnectionProvider)
+      ..invalidate(cachedWhatMattersProvider);
+    state = WhatMattersEntryStatus.saved;
   }
 }

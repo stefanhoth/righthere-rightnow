@@ -3,6 +3,7 @@ import 'package:drift_flutter/drift_flutter.dart';
 import 'package:righthere_rightnow/briefing/inference_health.dart';
 import 'package:righthere_rightnow/briefing/inference_status.dart';
 import 'package:righthere_rightnow/briefing/prompt.dart';
+import 'package:righthere_rightnow/data/what_matters/what_matters_document.dart';
 import 'package:righthere_rightnow/domain/ranked_agenda.dart';
 import 'package:righthere_rightnow/inference/inference_engine.dart';
 import 'package:righthere_rightnow/inference/inference_outcome.dart';
@@ -105,6 +106,20 @@ class InferenceAttempts extends Table {
   DateTimeColumn get attemptedAt => dateTime()();
 }
 
+/// The last good copy of the What Matters prose, with when it was fetched
+/// (ADR-0008). One row, always at [id] 0: a WebDAV failure reads this back
+/// so a Briefing Run still has the user's priorities to work from. The
+/// Nextcloud credential is **never** here -- it stays in
+/// `flutter_secure_storage`.
+class WhatMattersCache extends Table {
+  IntColumn get id => integer().withDefault(const Constant(0))();
+  TextColumn get prose => text()();
+  DateTimeColumn get fetchedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 @DriftDatabase(
   tables: [
     BriefingRuns,
@@ -113,6 +128,7 @@ class InferenceAttempts extends Table {
     Prompts,
     DismissedItems,
     InferenceAttempts,
+    WhatMattersCache,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -130,7 +146,7 @@ class AppDatabase extends _$AppDatabase {
       const DriftDatabaseOptions(storeDateTimeAsText: true);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -147,6 +163,9 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 5) {
         await m.createTable(inferenceAttempts);
+      }
+      if (from < 6) {
+        await m.createTable(whatMattersCache);
       }
     },
   );
@@ -386,6 +405,33 @@ class AppDatabase extends _$AppDatabase {
       ..limit(limit);
     final rows = await query.get();
     return rows.map((r) => r.result).toList();
+  }
+
+  /// The last good What Matters copy, or null if none has ever been fetched.
+  Future<WhatMattersDocument?> cachedWhatMatters() async {
+    final row = await (select(
+      whatMattersCache,
+    )..where((c) => c.id.equals(0))).getSingleOrNull();
+    if (row == null) {
+      return null;
+    }
+    return WhatMattersDocument(prose: row.prose, fetchedAt: row.fetchedAt);
+  }
+
+  /// Replaces the cached What Matters copy with [prose], fetched at
+  /// [fetchedAt]. Only ever called after a successful fetch, so the cache
+  /// always holds a real HTTP 200 body.
+  Future<void> cacheWhatMatters({
+    required String prose,
+    required DateTime fetchedAt,
+  }) {
+    return into(whatMattersCache).insertOnConflictUpdate(
+      WhatMattersCacheCompanion.insert(
+        id: const Value(0),
+        prose: prose,
+        fetchedAt: fetchedAt,
+      ),
+    );
   }
 }
 
