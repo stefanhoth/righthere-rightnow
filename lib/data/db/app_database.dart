@@ -1,7 +1,11 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
+import 'package:righthere_rightnow/briefing/inference_health.dart';
+import 'package:righthere_rightnow/briefing/inference_status.dart';
 import 'package:righthere_rightnow/briefing/prompt.dart';
 import 'package:righthere_rightnow/domain/ranked_agenda.dart';
+import 'package:righthere_rightnow/inference/inference_engine.dart';
+import 'package:righthere_rightnow/inference/inference_outcome.dart';
 
 part 'app_database.g.dart';
 
@@ -75,8 +79,41 @@ class DismissedItems extends Table {
   Set<Column<Object>> get primaryKey => {itemId};
 }
 
+/// One app-open attempt to run the model for a Briefing Run -- ranking or
+/// framing (ADR-0006). Persisted so the dev screen can show the last N with
+/// cause and timing, and so a *run* of failures can raise a banner on the
+/// Daily Agenda without a single bad morning tripping it.
+///
+/// [detail] never holds the prompt: that carries calendar and Task content.
+class InferenceAttempts extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get runId => integer().references(BriefingRuns, #id)();
+  TextColumn get work => textEnum<InferenceWork>()();
+  TextColumn get result => textEnum<InferenceResultKind>()();
+
+  /// The [EngineAvailability] name when [result] is `skipped`, the
+  /// [InferenceFailure] name when it `failed`, null when it `succeeded`.
+  TextColumn get cause => text().nullable()();
+
+  /// The engine's own error text, when it threw. Never the prompt.
+  TextColumn get detail => text().nullable()();
+
+  /// Wall-clock time the attempt took, or null when it was skipped before
+  /// the engine was called.
+  IntColumn get durationMs => integer().nullable()();
+
+  DateTimeColumn get attemptedAt => dateTime()();
+}
+
 @DriftDatabase(
-  tables: [BriefingRuns, SnapshotItems, RunRatings, Prompts, DismissedItems],
+  tables: [
+    BriefingRuns,
+    SnapshotItems,
+    RunRatings,
+    Prompts,
+    DismissedItems,
+    InferenceAttempts,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
@@ -93,7 +130,7 @@ class AppDatabase extends _$AppDatabase {
       const DriftDatabaseOptions(storeDateTimeAsText: true);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -107,6 +144,9 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 4) {
         await m.createTable(dismissedItems);
+      }
+      if (from < 5) {
+        await m.createTable(inferenceAttempts);
       }
     },
   );
@@ -287,6 +327,65 @@ class AppDatabase extends _$AppDatabase {
   /// callers sort by whichever rank column they need.
   Future<List<SnapshotItem>> snapshotItemsForRun(int runId) {
     return (select(snapshotItems)..where((s) => s.runId.equals(runId))).get();
+  }
+
+  /// Records one app-open inference attempt for [runId] -- see Task 4.3.
+  Future<void> recordInferenceAttempt({
+    required int runId,
+    required InferenceWork work,
+    required InferenceResultKind result,
+    required DateTime attemptedAt,
+    String? cause,
+    String? detail,
+    Duration? duration,
+  }) {
+    return into(inferenceAttempts).insert(
+      InferenceAttemptsCompanion.insert(
+        runId: runId,
+        work: work,
+        result: result,
+        attemptedAt: attemptedAt,
+        cause: Value(cause),
+        detail: Value(detail),
+        durationMs: Value(duration?.inMilliseconds),
+      ),
+    );
+  }
+
+  /// The most recent [limit] inference attempts, newest first -- the dev
+  /// screen's log, mapped to [InferenceAttemptRecord] so callers do not
+  /// depend on the Drift row.
+  Future<List<InferenceAttemptRecord>> recentInferenceAttempts({
+    int limit = 20,
+  }) async {
+    final query = select(inferenceAttempts)
+      ..orderBy([(a) => OrderingTerm.desc(a.attemptedAt)])
+      ..limit(limit);
+    final rows = await query.get();
+    return [
+      for (final row in rows)
+        InferenceAttemptRecord(
+          work: row.work,
+          result: row.result,
+          attemptedAt: row.attemptedAt,
+          cause: row.cause,
+          durationMs: row.durationMs,
+        ),
+    ];
+  }
+
+  /// The result of the ranking attempt for each of the most recent [limit]
+  /// app-opens that made one, newest first -- the failure banner's input.
+  /// Framing attempts are excluded: a missing framing line is not breakage.
+  Future<List<InferenceResultKind>> recentRankingResults({
+    int limit = 5,
+  }) async {
+    final query = select(inferenceAttempts)
+      ..where((a) => a.work.equalsValue(InferenceWork.ranking))
+      ..orderBy([(a) => OrderingTerm.desc(a.attemptedAt)])
+      ..limit(limit);
+    final rows = await query.get();
+    return rows.map((r) => r.result).toList();
   }
 }
 
