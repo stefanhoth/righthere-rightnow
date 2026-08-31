@@ -8,10 +8,13 @@ import 'package:righthere_rightnow/data/calendar/calendar_reader.dart';
 import 'package:righthere_rightnow/data/db/app_database.dart';
 import 'package:righthere_rightnow/data/settings/todoist_token_storage.dart';
 import 'package:righthere_rightnow/data/todoist/todoist_client.dart';
+import 'package:righthere_rightnow/data/what_matters/what_matters_document.dart';
 import 'package:righthere_rightnow/domain/agenda_item.dart';
 import 'package:righthere_rightnow/domain/priority.dart';
 import 'package:righthere_rightnow/domain/ranked_agenda.dart';
 import 'package:righthere_rightnow/domain/response_status.dart';
+
+import '../support/fake_what_matters_repository.dart';
 
 class _MockCalendarReader extends Mock implements CalendarReader {}
 
@@ -104,6 +107,7 @@ void main() {
       calendarReader: calendarReader,
       todoistClient: todoistClient,
       todoistTokenStorage: tokenStorage,
+      whatMattersRepository: stubWhatMattersRepository(),
       database: database,
       clock: clock,
     );
@@ -194,6 +198,41 @@ void main() {
 
     final storedRun = await database.select(database.briefingRuns).getSingle();
     expect(storedRun.error, contains('Todoist'));
+  });
+
+  test('an unreachable What Matters server still produces an agenda, with the error recorded', () async {
+    when(
+      () => calendarReader.fetchCommitments(
+        start: any(named: 'start'),
+        end: any(named: 'end'),
+      ),
+    ).thenAnswer(
+      (_) async => [
+        _commitment('cal:standup', clock().add(const Duration(hours: 1))),
+      ],
+    );
+    final failing = BriefingRunOrchestrator(
+      calendarReader: calendarReader,
+      todoistClient: todoistClient,
+      todoistTokenStorage: tokenStorage,
+      whatMattersRepository: stubWhatMattersRepository(
+        const WhatMattersReadResult(
+          isStale: true,
+          error: 'What Matters: WhatMattersException: HTTP 503',
+        ),
+      ),
+      database: database,
+      clock: clock,
+    );
+
+    final result = await failing.run();
+
+    expect(result.agenda.items.map((i) => i.id), ['cal:standup']);
+    expect(result.error, contains('What Matters'));
+    expect(result.isPartial, isTrue);
+
+    final storedRun = await database.select(database.briefingRuns).getSingle();
+    expect(storedRun.error, contains('What Matters'));
   });
 
   test('a denied calendar permission is flagged distinctly', () async {

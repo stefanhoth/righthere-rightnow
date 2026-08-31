@@ -34,7 +34,7 @@ final class DailyAgendaControllerProvider
 }
 
 String _$dailyAgendaControllerHash() =>
-    r'a13759dbcfff9c4d5280112feaf7bcbd18abd7eb';
+    r'94fca002185b1f60bbd1a5a2ad9c927c9e4775a0';
 
 abstract class _$DailyAgendaController
     extends $AsyncNotifier<BriefingRunResult> {
