@@ -75,6 +75,7 @@ Future<void> _pumpSettingsScreen(
   required bool tokenIsValid,
   PermissionStatus batteryOptimizationStatus = PermissionStatus.granted,
   List<Calendar> calendars = const [],
+  String? existingToken,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
@@ -82,6 +83,8 @@ Future<void> _pumpSettingsScreen(
         todoistClientProvider.overrideWithValue(
           _FakeTodoistClient(isValid: tokenIsValid),
         ),
+        if (existingToken != null)
+          storedTodoistTokenProvider.overrideWith((ref) async => existingToken),
         calendarPermissionStatusProvider.overrideWith(
           (ref) async => CalendarPermissionStatus.granted,
         ),
@@ -157,6 +160,59 @@ void main() {
 
     expect(find.text('Saved.'), findsOneWidget);
     expect(find.text('A token is saved.'), findsOneWidget);
+  });
+
+  testWidgets('a saved token collapses to a one-line summary', (tester) async {
+    await _pumpSettingsScreen(
+      tester,
+      tokenIsValid: true,
+      existingToken: 'saved-token',
+    );
+
+    expect(find.text('A token is saved.'), findsOneWidget);
+    expect(find.byKey(const Key('editTokenButton')), findsOneWidget);
+    expect(find.byKey(const Key('tokenField')), findsNothing);
+  });
+
+  testWidgets('Replace reveals an in-place editor that Cancel collapses', (
+    tester,
+  ) async {
+    await _pumpSettingsScreen(
+      tester,
+      tokenIsValid: true,
+      existingToken: 'saved-token',
+    );
+
+    await tester.tap(find.byKey(const Key('editTokenButton')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('tokenField')), findsOneWidget);
+    expect(find.byKey(const Key('verifyAndSaveButton')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('cancelTokenEditButton')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('tokenField')), findsNothing);
+    expect(find.text('A token is saved.'), findsOneWidget);
+  });
+
+  testWidgets('replacing a saved token collapses back on success', (
+    tester,
+  ) async {
+    await _pumpSettingsScreen(
+      tester,
+      tokenIsValid: true,
+      existingToken: 'old-token',
+    );
+
+    await tester.tap(find.byKey(const Key('editTokenButton')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('tokenField')), 'new-token');
+    await tester.tap(find.byKey(const Key('verifyAndSaveButton')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Saved.'), findsOneWidget);
+    expect(find.byKey(const Key('tokenField')), findsNothing);
   });
 
   testWidgets('an invalid token shows an error and is not saved', (
