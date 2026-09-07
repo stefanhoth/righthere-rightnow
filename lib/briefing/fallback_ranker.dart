@@ -14,6 +14,11 @@ import 'package:righthere_rightnow/domain/priority.dart';
 /// first overdue week instead of decaying. An empty set -- the default, and
 /// what an unreadable What Matters degrades to -- reproduces the pure decay
 /// behaviour exactly.
+///
+/// A *recurring* Task is the mirror image: its "overdue" days are the
+/// recurrence interval of an instance that regenerated this morning, not a
+/// consequence accruing, so its overdue contribution is capped low unless
+/// it is also on the never-decays list.
 int fallbackScore(
   AgendaItem item,
   Clock clock, {
@@ -105,9 +110,19 @@ int _commitmentScore(Commitment commitment, DateTime now) {
 
 int _taskScore(Task task, DateTime now, Set<String> neverDecays) {
   var score = _priorityBonus(task.priority);
+  final neverDecay = titleIsNeverDecay(task.title, neverDecays);
 
   final overdue = overdueDays(task.due, now);
   if (overdue != null) {
+    // A recurring Task shown as overdue has almost always just regenerated
+    // this morning -- the "overdue" days are its recurrence interval, not a
+    // consequence piling up (ADR-0007 escalates by consequence, not age).
+    // Unless it is on the never-decays list, don't let that phantom overdue
+    // climb lift a daily chore above real deadlines: cap the contribution
+    // so a p1/p2 with a genuine due date still outranks it.
+    if (task.isRecurring && !neverDecay) {
+      return score + (overdue > 3 ? 3 : overdue) * 50;
+    }
     // The first week is urgent either way. After that the curves diverge:
     // a never-decays Task keeps climbing (ADR-0007 -- consequence, not age),
     // every other Task decays and by day 40 is deeply negative: dead, not
@@ -115,7 +130,7 @@ int _taskScore(Task task, DateTime now, Set<String> neverDecays) {
     if (overdue <= 7) {
       return score + overdue * 200;
     }
-    return titleIsNeverDecay(task.title, neverDecays)
+    return neverDecay
         ? score + 1400 + (overdue - 7) * 60
         : score + 1400 - (overdue - 7) * 60;
   }

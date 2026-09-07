@@ -3,6 +3,31 @@
 Smaller calls that shaped the repo but didn't warrant a full ADR. Newest
 first. Add an entry in the same PR that makes the decision.
 
+## 2026-08-31 — Recurring chores don't ride phantom overdue to the top
+
+A recurring Todoist task ("empty the dishwasher", "weigh in") regenerates on
+its own schedule, so it is almost always shown a few days overdue. Both
+rankers were reading that as urgency it had not earned --
+[ADR-0007](adr/0007-what-matters-never-decays.md) is explicit that overdue
+escalates by *consequence*, not age, and a chore that respawns tomorrow has no
+consequence piling up. On device this surfaced as low-value chores sitting
+above real work.
+
+The fallback ranker now caps a recurring Task's overdue contribution (three
+days' worth) unless the Task is also on the never-decays list, in which case
+the ADR-0007 climb still wins. The seeded ranking prompt gains a matching pair
+of lines: a recurring task shown as overdue has just regenerated, so treat it
+as low-stakes unless it clearly serves something that matters; and a
+low-priority task with no project and no near deadline is background
+maintenance, ranked below anything with a real consequence today.
+
+Deliberately *not* driven off the recurrence interval. Todoist sends "every
+day" and "every 3 months" as a string, and the app only keeps a
+`bool isRecurring`, so a genuinely overdue yearly renewal is capped too.
+Capturing the interval is a later task; until then the never-decays list is
+the semantic escape hatch, and a de-prioritising Todoist label -- already
+carried in the ranker payload -- is the manual one.
+
 ## 2026-08-31 — A downloaded Gemma 4 model, not Gemini Nano
 
 [ADR-0004](adr/0004-gemini-nano-behind-an-engine-interface.md) put an engine

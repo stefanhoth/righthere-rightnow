@@ -33,12 +33,13 @@ Task _task({
   Priority priority = Priority.p3,
   TaskDue? due,
   String? title,
+  bool isRecurring = false,
 }) {
   return Task(
     id: id,
     title: title ?? id,
     priority: priority,
-    isRecurring: false,
+    isRecurring: isRecurring,
     due: due,
   );
 }
@@ -286,6 +287,72 @@ void main() {
         greaterThan(
           fallbackScore(at20, clock, neverDecays: {'renew passport'}),
         ),
+      );
+    });
+  });
+
+  group('recurring chores are not lifted by phantom overdue', () {
+    test('a recurring overdue chore sits below a real deadline', () {
+      final chore = _task(
+        id: 'td:dishwasher',
+        priority: Priority.p4,
+        title: 'Empty the dishwasher',
+        due: _overdueBy(6),
+        isRecurring: true,
+      );
+      final deadline = _task(
+        id: 'td:taxes',
+        priority: Priority.p1,
+        title: 'File the tax return',
+        due: TaskDue(
+          date: clock().add(const Duration(days: 3)),
+          hasTime: false,
+          isRecurring: false,
+        ),
+      );
+
+      final ranked = rankFallback([chore, deadline], clock);
+
+      expect(ranked.first.id, 'td:taxes');
+    });
+
+    test('the same chore, not recurring, would outrank it', () {
+      final recurring = _task(
+        id: 'td:x',
+        due: _overdueBy(6),
+        isRecurring: true,
+      );
+      final oneOff = _task(id: 'td:x', due: _overdueBy(6));
+
+      expect(
+        fallbackScore(recurring, clock),
+        lessThan(fallbackScore(oneOff, clock)),
+      );
+    });
+
+    test('its overdue contribution is capped, not linear in age', () {
+      final atThree = _task(id: 'td:x', due: _overdueBy(3), isRecurring: true);
+      final atThirty = _task(
+        id: 'td:x',
+        due: _overdueBy(30),
+        isRecurring: true,
+      );
+
+      expect(fallbackScore(atThirty, clock), fallbackScore(atThree, clock));
+    });
+
+    test('a recurring Task on the never-decays list still escalates', () {
+      final recurring = _task(
+        id: 'td:meds',
+        title: 'Reorder the prescription',
+        due: _overdueBy(30),
+        isRecurring: true,
+      );
+
+      expect(
+        fallbackScore(recurring, clock, neverDecays: {'reorder prescription'}),
+        greaterThan(1400),
+        reason: 'the never-decays climb wins over the recurring cap',
       );
     });
   });
