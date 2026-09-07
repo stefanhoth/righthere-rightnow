@@ -3,25 +3,59 @@ import 'dart:convert';
 import 'package:righthere_rightnow/data/db/candidate_item_json.dart';
 import 'package:righthere_rightnow/domain/agenda_item.dart';
 import 'package:righthere_rightnow/domain/candidate_set.dart';
+import 'package:righthere_rightnow/domain/what_matters_extraction.dart';
 
 /// Combines the active prompt with the full Candidate Set, features
-/// included -- the model reasons over rich data, per ADR-0003.
+/// included, and -- when there is one -- the What Matters extraction, so the
+/// model ranks against what the person is actually working toward and not
+/// only calendar/Todoist mechanics (ADR-0003, and DECISIONS.md 2026-08-31).
+///
+/// [whatMatters] is the *extraction* (Projects and the never-decays list),
+/// never the raw prose -- ADR-0008 keeps the prose out of the ranking
+/// prompt. Null, or empty, and the block is omitted entirely.
 String buildRankingPrompt({
   required String promptTemplate,
   required List<CandidateItem> candidateItems,
+  WhatMattersExtraction? whatMatters,
 }) {
-  // Each item carries a short number, and the model answers with those
-  // numbers rather than ids. ML Kit's GenAI Prompt API rejects any
-  // maxOutputTokens above 256 outright ("maxOutputTokens must be between 1
-  // and 256"), and 25 ids like "cal:12345:1787900000000" do not fit in 256
-  // tokens. Numbers do, with room to spare.
+  // Each item carries a short number "n" and the model answers with those,
+  // not the ids: a 2B model reproducing 25 opaque id strings verbatim
+  // either mangles one (unusable) or spends its whole turn on them
+  // (timeout). Numbers are trivially reproducible. This is *not* the old
+  // 256-token workaround -- LiteRT-LM has no such ceiling -- it is a
+  // reliability choice.
   final numbered = [
     for (final (index, candidate) in candidateItems.indexed)
       {'n': index + 1, ...candidateItemToJson(candidate)},
   ];
+
+  final priorities = _prioritiesBlock(whatMatters);
+
   return '$promptTemplate\n\n'
+      '$priorities'
       'Agenda Items (JSON):\n${jsonEncode(numbered)}\n\n'
       '$_answerContract';
+}
+
+String _prioritiesBlock(WhatMattersExtraction? whatMatters) {
+  if (whatMatters == null ||
+      (whatMatters.projects.isEmpty && whatMatters.neverDecays.isEmpty)) {
+    return '';
+  }
+  final json = jsonEncode({
+    'projects': [
+      for (final project in whatMatters.projects)
+        {
+          'name': project.name,
+          'deadline': project.deadline.toIso8601String().split('T').first,
+          'sessionsNeeded': project.sessionsNeeded,
+        },
+    ],
+    'neverLetSlide': whatMatters.neverDecays,
+  });
+  return 'What this person is working toward (weigh this heavily -- an item '
+      'that serves a project deadline or is on the never-let-slide list '
+      'matters more than its due date alone suggests):\n$json\n\n';
 }
 
 /// Parses and validates the model's [response] against [fallbackRankedItems]
@@ -41,9 +75,9 @@ List<AgendaItem>? validateModelRanking({
     return null;
   }
 
-  // A number is only meaningful if it names one of the items we supplied.
-  // The model still authors nothing -- this is the same permutation
-  // contract as ADR-0003, counted rather than spelled out.
+  // A number is only meaningful if it names one of the items we supplied,
+  // and only counts once. The model authors nothing -- this is the ADR-0003
+  // permutation contract, counted rather than spelled out.
   final recognised = <int>[];
   for (final n in parsed) {
     final index = n - 1;
@@ -99,25 +133,19 @@ List<int>? _tryParseNumbers(String response) {
 /// editable prompt. It has to match [validateModelRanking] exactly, and a
 /// prompt seeded into the database months ago cannot know that.
 const _answerContract =
-    'Respond with a JSON array of the item numbers "n", in that order, and '
-    'nothing else. Example: [3,1,2]. Use every number exactly once. Do not '
-    'invent a number that was not given, and write no other text.';
+    'Respond with a JSON array of the item numbers "n", most important '
+    'first, and nothing else. Example: [3,1,2]. Use every number exactly '
+    'once. Do not invent a number that was not given, and write no other '
+    'text.';
 
 /// How much room the model needs to answer with a permutation of
-/// [itemCount] Agenda Item ids.
+/// [itemCount] item numbers.
 ///
-/// ML Kit applies its own default when no bound is given, and on the Pixel
-/// that default is 256 tokens. A 25-item answer needs more than that, so the
-/// array was being cut off mid-id and the JSON never parsed -- which the app
-/// then reported, correctly but uselessly, as "the model's answer was
-/// unusable".
-///
-/// Ids run to roughly sixteen tokens (`cal:12345:1787900000000`), plus quotes
-/// and commas, plus a little slack for a model that likes a trailing newline.
-/// ML Kit rejects anything above 256 outright, so this is a clamp, not just
-/// a budget. Numbers cost roughly three tokens each with their comma.
+/// A number costs roughly three tokens with its comma. LiteRT-LM has no hard
+/// output ceiling (unlike ML Kit GenAI's 256), so this is a real budget, not
+/// a clamp; it is bounded only so a runaway generation cannot eat the
+/// context window.
 int rankingMaxOutputTokens(int itemCount) {
-  const mlKitCeiling = 256;
-  final needed = itemCount * 4 + 16;
-  return needed < mlKitCeiling ? needed : mlKitCeiling;
+  final needed = itemCount * 6 + 32;
+  return needed < 1024 ? needed : 1024;
 }

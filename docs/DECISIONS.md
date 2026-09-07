@@ -36,10 +36,25 @@ actually hold alongside normal use.
 external files dir and loaded with `fromFile()` — a single sideloaded Pixel
 does not need the download-with-progress UX that Task 4.2 sketched; that
 becomes a later `fromNetwork()` follow-up if the manual step proves annoying.
-The context window is capped at 4096 tokens, not the model's 32k, so the KV
+The context window is capped at 6144 tokens, not the model's 32k, so the KV
 cache does not add to memory pressure. Inference stays app-open only
 (ADR-0006): loading the model in a cold Doze background isolate is its own
 risk, unaddressed here.
+
+With the ML Kit output ceiling gone, the ranking prompt now carries the
+**What Matters extraction** (Projects and the never-let-slide list -- the
+structure, never the prose, per ADR-0008) so the model ranks against stated
+priorities, not only calendar/Todoist mechanics. ADR-0008 only had the
+*deterministic* ranker reading the extraction; the model reranker consuming
+it too is recorded here.
+
+The answer format stays the `[3,1,2]` **number** trick, not ids. That trick
+was assumed to be a 256-token workaround, but a device run showed E2B cannot
+reliably reproduce 25 opaque id strings verbatim -- it mangles one (the
+parse fails) or spends its whole turn on them (timeout). Numbers are a
+reliability choice now, not a token one. The rerank timeout rises to 90 s to
+cover E2B's slower generation; the deterministic agenda is already on screen
+throughout.
 
 ## 2026-08-30 — Stacked PRs: build the APK only at the ends of a stack
 

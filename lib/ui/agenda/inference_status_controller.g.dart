@@ -75,7 +75,7 @@ final class InferenceStatusControllerProvider
 }
 
 String _$inferenceStatusControllerHash() =>
-    r'32c6cc8e6a1451013a7ea27906caab93d2cb0cd4';
+    r'278fc147a875301602d09fbe0b646129733dbbef';
 
 /// Tracks what the model is doing for the Daily Agenda screen.
 ///

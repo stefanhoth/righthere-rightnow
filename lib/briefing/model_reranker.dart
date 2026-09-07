@@ -14,7 +14,7 @@ class ModelReranker {
   ModelReranker({
     required this.engine,
     required this.database,
-    this.timeout = const Duration(seconds: 30),
+    this.timeout = const Duration(seconds: 90),
   });
 
   final InferenceEngine engine;
@@ -35,9 +35,13 @@ class ModelReranker {
     }
 
     final prompt = await database.activePrompt();
+    // The extraction the last app-open persisted (ADR-0008). The model ranks
+    // with it as context; a null or empty one just omits the block.
+    final storedExtraction = await database.storedWhatMattersExtraction();
     final promptText = buildRankingPrompt(
       promptTemplate: prompt.text,
       candidateItems: result.candidateItems,
+      whatMatters: storedExtraction?.extraction,
     );
 
     final String response;

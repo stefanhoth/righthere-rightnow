@@ -61,16 +61,17 @@ Future<GemmaModelStatus> readGemmaModelStatus() async {
 class GemmaLiteRtEngine implements InferenceEngine {
   GemmaLiteRtEngine({
     this.resolveModelPath = defaultGemmaModelPath,
-    this.maxTokens = 4096,
+    this.maxTokens = 6144,
   });
 
   /// Injected in tests; resolves the absolute model-file path.
   final Future<String?> Function() resolveModelPath;
 
   /// Context window handed to LiteRT-LM. Covers the ranking prompt (~3.4k
-  /// tokens with 25 items) and the What Matters prose plus a full
-  /// extraction; kept well below the model's 32k ceiling so the KV cache
-  /// does not add to memory pressure.
+  /// tokens with 25 items, plus the What Matters extraction block and an
+  /// id-list answer) and the extraction prompt (the prose plus a full
+  /// structured answer); kept well below the model's 32k ceiling so the KV
+  /// cache does not add to memory pressure.
   final int maxTokens;
 
   /// The loaded model. Shared across every completion and loaded at most

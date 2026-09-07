@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:righthere_rightnow/briefing/model_ranking.dart';
 import 'package:righthere_rightnow/domain/agenda_item.dart';
 import 'package:righthere_rightnow/domain/priority.dart';
+import 'package:righthere_rightnow/domain/what_matters_extraction.dart';
 
 Task _task(String id) {
   return Task(id: id, title: id, priority: Priority.p3, isRecurring: false);
@@ -67,7 +68,6 @@ void main() {
     });
 
     test('fewer than half the candidates recognised discards it all', () {
-      // Only 1 of 4 recognised -- below half.
       final result = validateModelRanking(
         response: '[1, 97, 98, 99]',
         fallbackRankedItems: fallbackOrder,
@@ -95,6 +95,15 @@ void main() {
       expect(result?.map((i) => i.id), ['d', 'c', 'b', 'a']);
     });
 
+    test('zero and negatives name no item and are dropped', () {
+      final result = validateModelRanking(
+        response: '[0, -1, 4, 3, 2, 1]',
+        fallbackRankedItems: fallbackOrder,
+      );
+
+      expect(result?.map((i) => i.id), ['d', 'c', 'b', 'a']);
+    });
+
     test('an empty candidate set never breaks validation', () {
       final result = validateModelRanking(
         response: '[]',
@@ -115,7 +124,7 @@ void main() {
   });
 
   group('buildRankingPrompt', () {
-    test('appends the candidate set as JSON after the template', () {
+    test('numbers the candidate set and asks for a number array', () {
       final prompt = buildRankingPrompt(
         promptTemplate: 'Rank these.',
         candidateItems: const [],
@@ -123,23 +132,62 @@ void main() {
 
       expect(prompt, startsWith('Rank these.'));
       expect(prompt, contains('[]'));
-      // The answer contract comes from code, never from the stored prompt:
-      // a prompt seeded before the format changed would otherwise ask for
-      // the wrong shape forever.
+      // The answer contract comes from code, never the stored prompt.
       expect(prompt, contains('JSON array of the item numbers'));
+    });
+
+    test('omits the priorities block when there is no extraction', () {
+      final prompt = buildRankingPrompt(
+        promptTemplate: 'Rank.',
+        candidateItems: const [],
+      );
+
+      expect(prompt, isNot(contains('working toward')));
+    });
+
+    test('omits the priorities block when the extraction is empty', () {
+      final prompt = buildRankingPrompt(
+        promptTemplate: 'Rank.',
+        candidateItems: const [],
+        whatMatters: WhatMattersExtraction.empty,
+      );
+
+      expect(prompt, isNot(contains('working toward')));
+    });
+
+    test('carries the extracted structure -- never the prose -- when set', () {
+      final prompt = buildRankingPrompt(
+        promptTemplate: 'Rank.',
+        candidateItems: const [],
+        whatMatters: WhatMattersExtraction(
+          projects: [
+            Project(
+              name: 'Tax return',
+              deadline: DateTime(2026, 10, 31),
+              sessionsNeeded: 4,
+            ),
+          ],
+          neverDecays: const ['renew passport'],
+        ),
+      );
+
+      expect(prompt, contains('working toward'));
+      expect(prompt, contains('Tax return'));
+      expect(prompt, contains('2026-10-31'));
+      expect(prompt, contains('renew passport'));
     });
   });
 
-  group('numbers outside the supplied range', () {
-    test('zero and negatives name no item and are dropped', () {
-      // 1-based numbering: a naive `n - 1` would make 0 index the last item
-      // and negatives wrap. Both must simply not match.
-      final result = validateModelRanking(
-        response: '[0, -1, 4, 3, 2, 1]',
-        fallbackRankedItems: fallbackOrder,
+  group('rankingMaxOutputTokens', () {
+    test('scales with item count', () {
+      expect(
+        rankingMaxOutputTokens(25),
+        greaterThan(rankingMaxOutputTokens(5)),
       );
+    });
 
-      expect(result?.map((i) => i.id), ['d', 'c', 'b', 'a']);
+    test('is bounded so a runaway answer cannot eat the context', () {
+      expect(rankingMaxOutputTokens(1000), lessThanOrEqualTo(1024));
     });
   });
 }
