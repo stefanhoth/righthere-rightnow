@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:righthere_rightnow/briefing/briefing_run_orchestrator.dart';
+import 'package:righthere_rightnow/briefing/inference_health.dart';
 import 'package:righthere_rightnow/briefing/inference_status.dart';
 import 'package:righthere_rightnow/briefing/providers.dart';
 import 'package:righthere_rightnow/data/providers.dart';
@@ -47,9 +48,17 @@ class DailyAgendaController extends _$DailyAgendaController {
   void _rerankWithModel(BriefingRunResult fallbackResult) {
     final status = ref.read(inferenceStatusControllerProvider.notifier)
       ..started(InferenceWork.ranking);
+    final stopwatch = Stopwatch()..start();
     unawaited(
       ref.read(modelRerankerProvider).rerank(fallbackResult).then((outcome) {
+        stopwatch.stop();
         _logOutcome('rerank', outcome);
+        _recordAttempt(
+          fallbackResult.runId,
+          InferenceWork.ranking,
+          outcome,
+          stopwatch.elapsed,
+        );
         status.settled(InferenceWork.ranking, outcome);
         final reranked = outcome.valueOrNull;
         if (reranked != null) {
@@ -67,17 +76,73 @@ class DailyAgendaController extends _$DailyAgendaController {
   void _generateFramingLine(BriefingRunResult fallbackResult) {
     final status = ref.read(inferenceStatusControllerProvider.notifier)
       ..started(InferenceWork.framing);
+    final stopwatch = Stopwatch()..start();
     unawaited(
       ref.read(framingLineGeneratorProvider).generate(fallbackResult).then((
         outcome,
       ) {
+        stopwatch.stop();
         _logOutcome('framingLine', outcome);
+        _recordAttempt(
+          fallbackResult.runId,
+          InferenceWork.framing,
+          outcome,
+          stopwatch.elapsed,
+        );
         status.settled(InferenceWork.framing, outcome);
         final line = outcome.valueOrNull;
         if (line != null) {
           _mergeIntoState((current) => current.copyWith(framingLine: line));
         }
       }),
+    );
+  }
+
+  /// Persists one inference attempt with its cause and timing, then refreshes
+  /// the model-health check that backs the Daily Agenda's breakage banner.
+  ///
+  /// A skipped attempt is not recorded: on a device with no model every
+  /// app-open would skip, and a log of nothing-happened tells the dev screen
+  /// less than the runs it would push out. "Unavailable here" is the live
+  /// indicator's job, not the log's.
+  ///
+  /// Best-effort: a failed write must not take the agenda down with it.
+  void _recordAttempt<T>(
+    int runId,
+    InferenceWork work,
+    InferenceOutcome<T> outcome,
+    Duration elapsed,
+  ) {
+    if (outcome is InferenceSkipped<T>) {
+      return;
+    }
+    final (cause, detail) = switch (outcome) {
+      InferenceFailed<T>(:final failure, :final detail) => (
+        failure.name,
+        detail,
+      ),
+      _ => (null, null),
+    };
+    unawaited(
+      ref
+          .read(appDatabaseProvider)
+          .recordInferenceAttempt(
+            runId: runId,
+            work: work,
+            result: inferenceResultKind(outcome),
+            attemptedAt: DateTime.now(),
+            cause: cause,
+            detail: detail,
+            duration: elapsed,
+          )
+          .then((_) {
+            ref
+              ..invalidate(modelRankingFailingProvider)
+              ..invalidate(recentInferenceAttemptsProvider);
+          })
+          .catchError((Object error) {
+            debugPrint('DailyAgendaController: attempt not recorded ($error)');
+          }),
     );
   }
 
@@ -214,3 +279,21 @@ Future<DateTime?> lastBriefingRunCompletedAt(Ref ref) {
 /// Overridden in widget tests: every real path here leaves the app.
 @riverpod
 SourceOpener sourceOpener(Ref ref) => SourceOpener();
+
+/// True while the model has failed to rank at
+/// [modelFailureRunsBeforeBanner] consecutive app-opens -- the Daily Agenda
+/// shows a breakage banner for as long as it holds. Re-read after every
+/// recorded attempt. A device with no model at all reports skips, not
+/// failures, and never trips this.
+@riverpod
+Future<bool> modelRankingFailing(Ref ref) async {
+  final results = await ref.watch(appDatabaseProvider).recentRankingResults();
+  return modelRankingPersistentlyFailing(results);
+}
+
+/// The most recent inference attempts, newest first -- the dev screen's
+/// log of what the model did and how long it took (Task 4.3).
+@riverpod
+Future<List<InferenceAttemptRecord>> recentInferenceAttempts(Ref ref) {
+  return ref.watch(appDatabaseProvider).recentInferenceAttempts();
+}

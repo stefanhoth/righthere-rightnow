@@ -1733,6 +1733,538 @@ class DismissedItemsCompanion extends UpdateCompanion<DismissedItem> {
   }
 }
 
+class $InferenceAttemptsTable extends InferenceAttempts
+    with TableInfo<$InferenceAttemptsTable, InferenceAttempt> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $InferenceAttemptsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _runIdMeta = const VerificationMeta('runId');
+  @override
+  late final GeneratedColumn<int> runId = GeneratedColumn<int>(
+    'run_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES briefing_runs (id)',
+    ),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<InferenceWork, String> work =
+      GeneratedColumn<String>(
+        'work',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<InferenceWork>($InferenceAttemptsTable.$converterwork);
+  @override
+  late final GeneratedColumnWithTypeConverter<InferenceResultKind, String>
+  result =
+      GeneratedColumn<String>(
+        'result',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<InferenceResultKind>(
+        $InferenceAttemptsTable.$converterresult,
+      );
+  static const VerificationMeta _causeMeta = const VerificationMeta('cause');
+  @override
+  late final GeneratedColumn<String> cause = GeneratedColumn<String>(
+    'cause',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _detailMeta = const VerificationMeta('detail');
+  @override
+  late final GeneratedColumn<String> detail = GeneratedColumn<String>(
+    'detail',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _durationMsMeta = const VerificationMeta(
+    'durationMs',
+  );
+  @override
+  late final GeneratedColumn<int> durationMs = GeneratedColumn<int>(
+    'duration_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _attemptedAtMeta = const VerificationMeta(
+    'attemptedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> attemptedAt = GeneratedColumn<DateTime>(
+    'attempted_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    runId,
+    work,
+    result,
+    cause,
+    detail,
+    durationMs,
+    attemptedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'inference_attempts';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<InferenceAttempt> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('run_id')) {
+      context.handle(
+        _runIdMeta,
+        runId.isAcceptableOrUnknown(data['run_id']!, _runIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_runIdMeta);
+    }
+    if (data.containsKey('cause')) {
+      context.handle(
+        _causeMeta,
+        cause.isAcceptableOrUnknown(data['cause']!, _causeMeta),
+      );
+    }
+    if (data.containsKey('detail')) {
+      context.handle(
+        _detailMeta,
+        detail.isAcceptableOrUnknown(data['detail']!, _detailMeta),
+      );
+    }
+    if (data.containsKey('duration_ms')) {
+      context.handle(
+        _durationMsMeta,
+        durationMs.isAcceptableOrUnknown(data['duration_ms']!, _durationMsMeta),
+      );
+    }
+    if (data.containsKey('attempted_at')) {
+      context.handle(
+        _attemptedAtMeta,
+        attemptedAt.isAcceptableOrUnknown(
+          data['attempted_at']!,
+          _attemptedAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_attemptedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  InferenceAttempt map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return InferenceAttempt(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      runId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}run_id'],
+      )!,
+      work: $InferenceAttemptsTable.$converterwork.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}work'],
+        )!,
+      ),
+      result: $InferenceAttemptsTable.$converterresult.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}result'],
+        )!,
+      ),
+      cause: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cause'],
+      ),
+      detail: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}detail'],
+      ),
+      durationMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}duration_ms'],
+      ),
+      attemptedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}attempted_at'],
+      )!,
+    );
+  }
+
+  @override
+  $InferenceAttemptsTable createAlias(String alias) {
+    return $InferenceAttemptsTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<InferenceWork, String, String> $converterwork =
+      const EnumNameConverter<InferenceWork>(InferenceWork.values);
+  static JsonTypeConverter2<InferenceResultKind, String, String>
+  $converterresult = const EnumNameConverter<InferenceResultKind>(
+    InferenceResultKind.values,
+  );
+}
+
+class InferenceAttempt extends DataClass
+    implements Insertable<InferenceAttempt> {
+  final int id;
+  final int runId;
+  final InferenceWork work;
+  final InferenceResultKind result;
+
+  /// [EngineAvailability.name] when [result] is `skipped`,
+  /// [InferenceFailure.name] when it `failed`, null when it `succeeded`.
+  final String? cause;
+
+  /// The engine's own error text, when it threw. Never the prompt.
+  final String? detail;
+
+  /// Wall-clock time the attempt took, or null when it was skipped before
+  /// the engine was called.
+  final int? durationMs;
+  final DateTime attemptedAt;
+  const InferenceAttempt({
+    required this.id,
+    required this.runId,
+    required this.work,
+    required this.result,
+    this.cause,
+    this.detail,
+    this.durationMs,
+    required this.attemptedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['run_id'] = Variable<int>(runId);
+    {
+      map['work'] = Variable<String>(
+        $InferenceAttemptsTable.$converterwork.toSql(work),
+      );
+    }
+    {
+      map['result'] = Variable<String>(
+        $InferenceAttemptsTable.$converterresult.toSql(result),
+      );
+    }
+    if (!nullToAbsent || cause != null) {
+      map['cause'] = Variable<String>(cause);
+    }
+    if (!nullToAbsent || detail != null) {
+      map['detail'] = Variable<String>(detail);
+    }
+    if (!nullToAbsent || durationMs != null) {
+      map['duration_ms'] = Variable<int>(durationMs);
+    }
+    map['attempted_at'] = Variable<DateTime>(attemptedAt);
+    return map;
+  }
+
+  InferenceAttemptsCompanion toCompanion(bool nullToAbsent) {
+    return InferenceAttemptsCompanion(
+      id: Value(id),
+      runId: Value(runId),
+      work: Value(work),
+      result: Value(result),
+      cause: cause == null && nullToAbsent
+          ? const Value.absent()
+          : Value(cause),
+      detail: detail == null && nullToAbsent
+          ? const Value.absent()
+          : Value(detail),
+      durationMs: durationMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(durationMs),
+      attemptedAt: Value(attemptedAt),
+    );
+  }
+
+  factory InferenceAttempt.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return InferenceAttempt(
+      id: serializer.fromJson<int>(json['id']),
+      runId: serializer.fromJson<int>(json['runId']),
+      work: $InferenceAttemptsTable.$converterwork.fromJson(
+        serializer.fromJson<String>(json['work']),
+      ),
+      result: $InferenceAttemptsTable.$converterresult.fromJson(
+        serializer.fromJson<String>(json['result']),
+      ),
+      cause: serializer.fromJson<String?>(json['cause']),
+      detail: serializer.fromJson<String?>(json['detail']),
+      durationMs: serializer.fromJson<int?>(json['durationMs']),
+      attemptedAt: serializer.fromJson<DateTime>(json['attemptedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'runId': serializer.toJson<int>(runId),
+      'work': serializer.toJson<String>(
+        $InferenceAttemptsTable.$converterwork.toJson(work),
+      ),
+      'result': serializer.toJson<String>(
+        $InferenceAttemptsTable.$converterresult.toJson(result),
+      ),
+      'cause': serializer.toJson<String?>(cause),
+      'detail': serializer.toJson<String?>(detail),
+      'durationMs': serializer.toJson<int?>(durationMs),
+      'attemptedAt': serializer.toJson<DateTime>(attemptedAt),
+    };
+  }
+
+  InferenceAttempt copyWith({
+    int? id,
+    int? runId,
+    InferenceWork? work,
+    InferenceResultKind? result,
+    Value<String?> cause = const Value.absent(),
+    Value<String?> detail = const Value.absent(),
+    Value<int?> durationMs = const Value.absent(),
+    DateTime? attemptedAt,
+  }) => InferenceAttempt(
+    id: id ?? this.id,
+    runId: runId ?? this.runId,
+    work: work ?? this.work,
+    result: result ?? this.result,
+    cause: cause.present ? cause.value : this.cause,
+    detail: detail.present ? detail.value : this.detail,
+    durationMs: durationMs.present ? durationMs.value : this.durationMs,
+    attemptedAt: attemptedAt ?? this.attemptedAt,
+  );
+  InferenceAttempt copyWithCompanion(InferenceAttemptsCompanion data) {
+    return InferenceAttempt(
+      id: data.id.present ? data.id.value : this.id,
+      runId: data.runId.present ? data.runId.value : this.runId,
+      work: data.work.present ? data.work.value : this.work,
+      result: data.result.present ? data.result.value : this.result,
+      cause: data.cause.present ? data.cause.value : this.cause,
+      detail: data.detail.present ? data.detail.value : this.detail,
+      durationMs: data.durationMs.present
+          ? data.durationMs.value
+          : this.durationMs,
+      attemptedAt: data.attemptedAt.present
+          ? data.attemptedAt.value
+          : this.attemptedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('InferenceAttempt(')
+          ..write('id: $id, ')
+          ..write('runId: $runId, ')
+          ..write('work: $work, ')
+          ..write('result: $result, ')
+          ..write('cause: $cause, ')
+          ..write('detail: $detail, ')
+          ..write('durationMs: $durationMs, ')
+          ..write('attemptedAt: $attemptedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    runId,
+    work,
+    result,
+    cause,
+    detail,
+    durationMs,
+    attemptedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is InferenceAttempt &&
+          other.id == this.id &&
+          other.runId == this.runId &&
+          other.work == this.work &&
+          other.result == this.result &&
+          other.cause == this.cause &&
+          other.detail == this.detail &&
+          other.durationMs == this.durationMs &&
+          other.attemptedAt == this.attemptedAt);
+}
+
+class InferenceAttemptsCompanion extends UpdateCompanion<InferenceAttempt> {
+  final Value<int> id;
+  final Value<int> runId;
+  final Value<InferenceWork> work;
+  final Value<InferenceResultKind> result;
+  final Value<String?> cause;
+  final Value<String?> detail;
+  final Value<int?> durationMs;
+  final Value<DateTime> attemptedAt;
+  const InferenceAttemptsCompanion({
+    this.id = const Value.absent(),
+    this.runId = const Value.absent(),
+    this.work = const Value.absent(),
+    this.result = const Value.absent(),
+    this.cause = const Value.absent(),
+    this.detail = const Value.absent(),
+    this.durationMs = const Value.absent(),
+    this.attemptedAt = const Value.absent(),
+  });
+  InferenceAttemptsCompanion.insert({
+    this.id = const Value.absent(),
+    required int runId,
+    required InferenceWork work,
+    required InferenceResultKind result,
+    this.cause = const Value.absent(),
+    this.detail = const Value.absent(),
+    this.durationMs = const Value.absent(),
+    required DateTime attemptedAt,
+  }) : runId = Value(runId),
+       work = Value(work),
+       result = Value(result),
+       attemptedAt = Value(attemptedAt);
+  static Insertable<InferenceAttempt> custom({
+    Expression<int>? id,
+    Expression<int>? runId,
+    Expression<String>? work,
+    Expression<String>? result,
+    Expression<String>? cause,
+    Expression<String>? detail,
+    Expression<int>? durationMs,
+    Expression<DateTime>? attemptedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (runId != null) 'run_id': runId,
+      if (work != null) 'work': work,
+      if (result != null) 'result': result,
+      if (cause != null) 'cause': cause,
+      if (detail != null) 'detail': detail,
+      if (durationMs != null) 'duration_ms': durationMs,
+      if (attemptedAt != null) 'attempted_at': attemptedAt,
+    });
+  }
+
+  InferenceAttemptsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? runId,
+    Value<InferenceWork>? work,
+    Value<InferenceResultKind>? result,
+    Value<String?>? cause,
+    Value<String?>? detail,
+    Value<int?>? durationMs,
+    Value<DateTime>? attemptedAt,
+  }) {
+    return InferenceAttemptsCompanion(
+      id: id ?? this.id,
+      runId: runId ?? this.runId,
+      work: work ?? this.work,
+      result: result ?? this.result,
+      cause: cause ?? this.cause,
+      detail: detail ?? this.detail,
+      durationMs: durationMs ?? this.durationMs,
+      attemptedAt: attemptedAt ?? this.attemptedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (runId.present) {
+      map['run_id'] = Variable<int>(runId.value);
+    }
+    if (work.present) {
+      map['work'] = Variable<String>(
+        $InferenceAttemptsTable.$converterwork.toSql(work.value),
+      );
+    }
+    if (result.present) {
+      map['result'] = Variable<String>(
+        $InferenceAttemptsTable.$converterresult.toSql(result.value),
+      );
+    }
+    if (cause.present) {
+      map['cause'] = Variable<String>(cause.value);
+    }
+    if (detail.present) {
+      map['detail'] = Variable<String>(detail.value);
+    }
+    if (durationMs.present) {
+      map['duration_ms'] = Variable<int>(durationMs.value);
+    }
+    if (attemptedAt.present) {
+      map['attempted_at'] = Variable<DateTime>(attemptedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('InferenceAttemptsCompanion(')
+          ..write('id: $id, ')
+          ..write('runId: $runId, ')
+          ..write('work: $work, ')
+          ..write('result: $result, ')
+          ..write('cause: $cause, ')
+          ..write('detail: $detail, ')
+          ..write('durationMs: $durationMs, ')
+          ..write('attemptedAt: $attemptedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1741,6 +2273,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $RunRatingsTable runRatings = $RunRatingsTable(this);
   late final $PromptsTable prompts = $PromptsTable(this);
   late final $DismissedItemsTable dismissedItems = $DismissedItemsTable(this);
+  late final $InferenceAttemptsTable inferenceAttempts =
+      $InferenceAttemptsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1751,6 +2285,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     runRatings,
     prompts,
     dismissedItems,
+    inferenceAttempts,
   ];
 }
 
@@ -1810,6 +2345,27 @@ final class $$BriefingRunsTableReferences
     ).filter((f) => f.runId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_runRatingsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$InferenceAttemptsTable, List<InferenceAttempt>>
+  _inferenceAttemptsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.inferenceAttempts,
+        aliasName: 'briefing_runs__id__inference_attempts__run_id',
+      );
+
+  $$InferenceAttemptsTableProcessedTableManager get inferenceAttemptsRefs {
+    final manager = $$InferenceAttemptsTableTableManager(
+      $_db,
+      $_db.inferenceAttempts,
+    ).filter((f) => f.runId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _inferenceAttemptsRefsTable($_db),
+    );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -1902,6 +2458,31 @@ class $$BriefingRunsTableFilterComposer
           }) => $$RunRatingsTableFilterComposer(
             $db: $db,
             $table: $db.runRatings,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> inferenceAttemptsRefs(
+    Expression<bool> Function($$InferenceAttemptsTableFilterComposer f) f,
+  ) {
+    final $$InferenceAttemptsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.inferenceAttempts,
+      getReferencedColumn: (t) => t.runId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$InferenceAttemptsTableFilterComposer(
+            $db: $db,
+            $table: $db.inferenceAttempts,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -2042,6 +2623,32 @@ class $$BriefingRunsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> inferenceAttemptsRefs<T extends Object>(
+    Expression<T> Function($$InferenceAttemptsTableAnnotationComposer a) f,
+  ) {
+    final $$InferenceAttemptsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.inferenceAttempts,
+          getReferencedColumn: (t) => t.runId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$InferenceAttemptsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.inferenceAttempts,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$BriefingRunsTableTableManager
@@ -2057,7 +2664,11 @@ class $$BriefingRunsTableTableManager
           $$BriefingRunsTableUpdateCompanionBuilder,
           (BriefingRun, $$BriefingRunsTableReferences),
           BriefingRun,
-          PrefetchHooks Function({bool snapshotItemsRefs, bool runRatingsRefs})
+          PrefetchHooks Function({
+            bool snapshotItemsRefs,
+            bool runRatingsRefs,
+            bool inferenceAttemptsRefs,
+          })
         > {
   $$BriefingRunsTableTableManager(_$AppDatabase db, $BriefingRunsTable table)
     : super(
@@ -2115,12 +2726,17 @@ class $$BriefingRunsTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({snapshotItemsRefs = false, runRatingsRefs = false}) {
+              ({
+                snapshotItemsRefs = false,
+                runRatingsRefs = false,
+                inferenceAttemptsRefs = false,
+              }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (snapshotItemsRefs) db.snapshotItems,
                     if (runRatingsRefs) db.runRatings,
+                    if (inferenceAttemptsRefs) db.inferenceAttempts,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -2167,6 +2783,27 @@ class $$BriefingRunsTableTableManager
                           ) => referencedItems.where((e) => e.runId == item.id),
                           typedResults: items,
                         ),
+                      if (inferenceAttemptsRefs)
+                        await $_getPrefetchedData<
+                          BriefingRun,
+                          $BriefingRunsTable,
+                          InferenceAttempt
+                        >(
+                          currentTable: table,
+                          referencedTable: $$BriefingRunsTableReferences
+                              ._inferenceAttemptsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$BriefingRunsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).inferenceAttemptsRefs,
+                          referencedItemsForCurrentItem: (
+                            item,
+                            referencedItems,
+                          ) => referencedItems.where((e) => e.runId == item.id),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -2187,7 +2824,11 @@ typedef $$BriefingRunsTableProcessedTableManager =
       $$BriefingRunsTableUpdateCompanionBuilder,
       (BriefingRun, $$BriefingRunsTableReferences),
       BriefingRun,
-      PrefetchHooks Function({bool snapshotItemsRefs, bool runRatingsRefs})
+      PrefetchHooks Function({
+        bool snapshotItemsRefs,
+        bool runRatingsRefs,
+        bool inferenceAttemptsRefs,
+      })
     >;
 typedef $$SnapshotItemsTableCreateCompanionBuilder =
     SnapshotItemsCompanion Function({
@@ -3131,6 +3772,396 @@ typedef $$DismissedItemsTableProcessedTableManager =
       DismissedItem,
       PrefetchHooks Function()
     >;
+typedef $$InferenceAttemptsTableCreateCompanionBuilder =
+    InferenceAttemptsCompanion Function({
+      Value<int> id,
+      required int runId,
+      required InferenceWork work,
+      required InferenceResultKind result,
+      Value<String?> cause,
+      Value<String?> detail,
+      Value<int?> durationMs,
+      required DateTime attemptedAt,
+    });
+typedef $$InferenceAttemptsTableUpdateCompanionBuilder =
+    InferenceAttemptsCompanion Function({
+      Value<int> id,
+      Value<int> runId,
+      Value<InferenceWork> work,
+      Value<InferenceResultKind> result,
+      Value<String?> cause,
+      Value<String?> detail,
+      Value<int?> durationMs,
+      Value<DateTime> attemptedAt,
+    });
+
+final class $$InferenceAttemptsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $InferenceAttemptsTable,
+          InferenceAttempt
+        > {
+  $$InferenceAttemptsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $BriefingRunsTable _runIdTable(_$AppDatabase db) => db.briefingRuns
+      .createAlias('inference_attempts__run_id__briefing_runs__id');
+
+  $$BriefingRunsTableProcessedTableManager get runId {
+    final $_column = $_itemColumn<int>('run_id')!;
+
+    final manager = $$BriefingRunsTableTableManager(
+      $_db,
+      $_db.briefingRuns,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_runIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$InferenceAttemptsTableFilterComposer
+    extends Composer<_$AppDatabase, $InferenceAttemptsTable> {
+  $$InferenceAttemptsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<InferenceWork, InferenceWork, String>
+  get work => $composableBuilder(
+    column: $table.work,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<
+    InferenceResultKind,
+    InferenceResultKind,
+    String
+  >
+  get result => $composableBuilder(
+    column: $table.result,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get cause => $composableBuilder(
+    column: $table.cause,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get detail => $composableBuilder(
+    column: $table.detail,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get attemptedAt => $composableBuilder(
+    column: $table.attemptedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$BriefingRunsTableFilterComposer get runId {
+    final $$BriefingRunsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.runId,
+      referencedTable: $db.briefingRuns,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BriefingRunsTableFilterComposer(
+            $db: $db,
+            $table: $db.briefingRuns,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$InferenceAttemptsTableOrderingComposer
+    extends Composer<_$AppDatabase, $InferenceAttemptsTable> {
+  $$InferenceAttemptsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get work => $composableBuilder(
+    column: $table.work,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get result => $composableBuilder(
+    column: $table.result,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get cause => $composableBuilder(
+    column: $table.cause,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get detail => $composableBuilder(
+    column: $table.detail,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get attemptedAt => $composableBuilder(
+    column: $table.attemptedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$BriefingRunsTableOrderingComposer get runId {
+    final $$BriefingRunsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.runId,
+      referencedTable: $db.briefingRuns,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BriefingRunsTableOrderingComposer(
+            $db: $db,
+            $table: $db.briefingRuns,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$InferenceAttemptsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $InferenceAttemptsTable> {
+  $$InferenceAttemptsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<InferenceWork, String> get work =>
+      $composableBuilder(column: $table.work, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<InferenceResultKind, String> get result =>
+      $composableBuilder(column: $table.result, builder: (column) => column);
+
+  GeneratedColumn<String> get cause =>
+      $composableBuilder(column: $table.cause, builder: (column) => column);
+
+  GeneratedColumn<String> get detail =>
+      $composableBuilder(column: $table.detail, builder: (column) => column);
+
+  GeneratedColumn<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get attemptedAt => $composableBuilder(
+    column: $table.attemptedAt,
+    builder: (column) => column,
+  );
+
+  $$BriefingRunsTableAnnotationComposer get runId {
+    final $$BriefingRunsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.runId,
+      referencedTable: $db.briefingRuns,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BriefingRunsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.briefingRuns,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$InferenceAttemptsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $InferenceAttemptsTable,
+          InferenceAttempt,
+          $$InferenceAttemptsTableFilterComposer,
+          $$InferenceAttemptsTableOrderingComposer,
+          $$InferenceAttemptsTableAnnotationComposer,
+          $$InferenceAttemptsTableCreateCompanionBuilder,
+          $$InferenceAttemptsTableUpdateCompanionBuilder,
+          (InferenceAttempt, $$InferenceAttemptsTableReferences),
+          InferenceAttempt,
+          PrefetchHooks Function({bool runId})
+        > {
+  $$InferenceAttemptsTableTableManager(
+    _$AppDatabase db,
+    $InferenceAttemptsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$InferenceAttemptsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$InferenceAttemptsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$InferenceAttemptsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> runId = const Value.absent(),
+                Value<InferenceWork> work = const Value.absent(),
+                Value<InferenceResultKind> result = const Value.absent(),
+                Value<String?> cause = const Value.absent(),
+                Value<String?> detail = const Value.absent(),
+                Value<int?> durationMs = const Value.absent(),
+                Value<DateTime> attemptedAt = const Value.absent(),
+              }) => InferenceAttemptsCompanion(
+                id: id,
+                runId: runId,
+                work: work,
+                result: result,
+                cause: cause,
+                detail: detail,
+                durationMs: durationMs,
+                attemptedAt: attemptedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int runId,
+                required InferenceWork work,
+                required InferenceResultKind result,
+                Value<String?> cause = const Value.absent(),
+                Value<String?> detail = const Value.absent(),
+                Value<int?> durationMs = const Value.absent(),
+                required DateTime attemptedAt,
+              }) => InferenceAttemptsCompanion.insert(
+                id: id,
+                runId: runId,
+                work: work,
+                result: result,
+                cause: cause,
+                detail: detail,
+                durationMs: durationMs,
+                attemptedAt: attemptedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$InferenceAttemptsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({runId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (runId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.runId,
+                        referencedTable: $$InferenceAttemptsTableReferences
+                            ._runIdTable(db),
+                        referencedColumn: $$InferenceAttemptsTableReferences
+                            ._runIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$InferenceAttemptsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $InferenceAttemptsTable,
+      InferenceAttempt,
+      $$InferenceAttemptsTableFilterComposer,
+      $$InferenceAttemptsTableOrderingComposer,
+      $$InferenceAttemptsTableAnnotationComposer,
+      $$InferenceAttemptsTableCreateCompanionBuilder,
+      $$InferenceAttemptsTableUpdateCompanionBuilder,
+      (InferenceAttempt, $$InferenceAttemptsTableReferences),
+      InferenceAttempt,
+      PrefetchHooks Function({bool runId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3145,4 +4176,6 @@ class $AppDatabaseManager {
       $$PromptsTableTableManager(_db, _db.prompts);
   $$DismissedItemsTableTableManager get dismissedItems =>
       $$DismissedItemsTableTableManager(_db, _db.dismissedItems);
+  $$InferenceAttemptsTableTableManager get inferenceAttempts =>
+      $$InferenceAttemptsTableTableManager(_db, _db.inferenceAttempts);
 }

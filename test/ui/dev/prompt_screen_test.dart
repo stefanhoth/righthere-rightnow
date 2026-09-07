@@ -2,11 +2,14 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:righthere_rightnow/briefing/inference_status.dart';
 import 'package:righthere_rightnow/briefing/prompt.dart';
 import 'package:righthere_rightnow/briefing/providers.dart';
 import 'package:righthere_rightnow/data/db/app_database.dart';
 import 'package:righthere_rightnow/data/providers.dart';
+import 'package:righthere_rightnow/domain/ranked_agenda.dart';
 import 'package:righthere_rightnow/inference/inference_engine.dart';
+import 'package:righthere_rightnow/inference/inference_outcome.dart';
 import 'package:righthere_rightnow/ui/dev/prompt_screen.dart';
 
 /// Resolves synchronously, unlike the real engine's platform-channel probe.
@@ -25,9 +28,13 @@ class _FakeInferenceEngine implements InferenceEngine {
   }
 }
 
-Future<AppDatabase> _pumpPromptScreen(WidgetTester tester) async {
+Future<AppDatabase> _pumpPromptScreen(
+  WidgetTester tester, {
+  Future<void> Function(AppDatabase db)? seed,
+}) async {
   final db = AppDatabase.forTesting(NativeDatabase.memory());
   addTearDown(db.close);
+  await seed?.call(db);
 
   await tester.pumpWidget(
     ProviderScope(
@@ -102,5 +109,43 @@ void main() {
       findsOneWidget,
     );
     expect(find.byKey(const Key('nonDeterministicWarning')), findsNothing);
+  });
+
+  testWidgets('the inference log is empty until inference has run', (
+    tester,
+  ) async {
+    await _pumpPromptScreen(tester);
+
+    expect(find.byKey(const Key('inferenceLogEmpty')), findsOneWidget);
+  });
+
+  testWidgets('the inference log names a recorded attempt with its cause', (
+    tester,
+  ) async {
+    await _pumpPromptScreen(
+      tester,
+      seed: (db) async {
+        final runId = await db
+            .into(db.briefingRuns)
+            .insert(
+              BriefingRunsCompanion.insert(
+                startedAt: DateTime.utc(2026, 8, 28, 5, 30),
+                completedAt: DateTime.utc(2026, 8, 28, 5, 30, 5),
+                rankedBy: RankedBy.fallback,
+              ),
+            );
+        await db.recordInferenceAttempt(
+          runId: runId,
+          work: InferenceWork.ranking,
+          result: InferenceResultKind.failed,
+          attemptedAt: DateTime.utc(2026, 8, 28, 5, 31),
+          cause: 'timedOut',
+          duration: const Duration(milliseconds: 30000),
+        );
+      },
+    );
+
+    expect(find.byKey(const Key('inferenceLogEmpty')), findsNothing);
+    expect(find.textContaining('Ranking failed (timedOut)'), findsOneWidget);
   });
 }

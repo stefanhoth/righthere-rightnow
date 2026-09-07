@@ -1,9 +1,11 @@
 import 'package:drift/drift.dart' hide isNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:righthere_rightnow/briefing/inference_status.dart';
 import 'package:righthere_rightnow/briefing/prompt.dart';
 import 'package:righthere_rightnow/data/db/app_database.dart';
 import 'package:righthere_rightnow/domain/ranked_agenda.dart';
+import 'package:righthere_rightnow/inference/inference_outcome.dart';
 
 void main() {
   late AppDatabase db;
@@ -319,5 +321,103 @@ void main() {
     await db.undismissItem('cal:1');
 
     expect(await db.dismissedItemIds(), {'cal:2'});
+  });
+
+  group('inference attempts', () {
+    Future<int> insertRun() => db
+        .into(db.briefingRuns)
+        .insert(
+          BriefingRunsCompanion.insert(
+            startedAt: DateTime.utc(2026, 8, 28, 5, 30),
+            completedAt: DateTime.utc(2026, 8, 28, 5, 30, 5),
+            rankedBy: RankedBy.fallback,
+          ),
+        );
+
+    test('an attempt reads back with its cause and timing', () async {
+      final runId = await insertRun();
+
+      await db.recordInferenceAttempt(
+        runId: runId,
+        work: InferenceWork.ranking,
+        result: InferenceResultKind.failed,
+        attemptedAt: DateTime.utc(2026, 8, 28, 5, 31),
+        cause: 'engineThrew',
+        detail: 'Bad state: Session is closed',
+        duration: const Duration(milliseconds: 1234),
+      );
+
+      final attempt = (await db.recentInferenceAttempts()).single;
+      expect(attempt.work, InferenceWork.ranking);
+      expect(attempt.result, InferenceResultKind.failed);
+      expect(attempt.cause, 'engineThrew');
+      expect(attempt.durationMs, 1234);
+    });
+
+    test(
+      'recentInferenceAttempts is newest first and honours the limit',
+      () async {
+        final runId = await insertRun();
+        for (var minute = 0; minute < 5; minute++) {
+          await db.recordInferenceAttempt(
+            runId: runId,
+            work: InferenceWork.framing,
+            result: InferenceResultKind.succeeded,
+            attemptedAt: DateTime.utc(2026, 8, 28, 6, minute),
+          );
+        }
+
+        final recent = await db.recentInferenceAttempts(limit: 3);
+        expect(recent, hasLength(3));
+        expect(recent.map((a) => a.attemptedAt), [
+          DateTime.utc(2026, 8, 28, 6, 4),
+          DateTime.utc(2026, 8, 28, 6, 3),
+          DateTime.utc(2026, 8, 28, 6, 2),
+        ]);
+      },
+    );
+
+    test('recentRankingResults ignores framing attempts', () async {
+      final runId = await insertRun();
+      await db.recordInferenceAttempt(
+        runId: runId,
+        work: InferenceWork.framing,
+        result: InferenceResultKind.failed,
+        attemptedAt: DateTime.utc(2026, 8, 28, 6),
+      );
+      await db.recordInferenceAttempt(
+        runId: runId,
+        work: InferenceWork.ranking,
+        result: InferenceResultKind.succeeded,
+        attemptedAt: DateTime.utc(2026, 8, 28, 6, 1),
+      );
+
+      expect(await db.recentRankingResults(), [InferenceResultKind.succeeded]);
+    });
+
+    test(
+      'recentRankingResults is newest first, bounded by the limit',
+      () async {
+        final runId = await insertRun();
+        final results = [
+          InferenceResultKind.succeeded,
+          InferenceResultKind.failed,
+          InferenceResultKind.failed,
+        ];
+        for (final (minute, result) in results.indexed) {
+          await db.recordInferenceAttempt(
+            runId: runId,
+            work: InferenceWork.ranking,
+            result: result,
+            attemptedAt: DateTime.utc(2026, 8, 28, 6, minute),
+          );
+        }
+
+        expect(await db.recentRankingResults(limit: 2), [
+          InferenceResultKind.failed,
+          InferenceResultKind.failed,
+        ]);
+      },
+    );
   });
 }

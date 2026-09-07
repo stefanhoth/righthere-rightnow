@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:righthere_rightnow/ui/agenda/agenda_controller.dart';
+import 'package:righthere_rightnow/ui/dev/inference_log.dart';
 import 'package:righthere_rightnow/ui/dev/prompt_controller.dart';
 import 'package:righthere_rightnow/ui/dev/replay_controller.dart';
 
@@ -91,9 +93,57 @@ class _PromptScreenState extends ConsumerState<PromptScreen> {
             ),
             const Divider(height: 32),
             const _ReplaySection(),
+            const Divider(height: 32),
+            const _InferenceLogSection(),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// The last N inference attempts with cause and timing (Task 4.3), read from
+/// the persisted attempt log. The one place a silent model failure -- or a
+/// framing line the model simply chose not to write -- is legible after the
+/// fact.
+class _InferenceLogSection extends ConsumerWidget {
+  const _InferenceLogSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final attempts = ref.watch(recentInferenceAttemptsProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Recent inference',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 8),
+        switch (attempts) {
+          AsyncData(:final value) when value.isEmpty => const Text(
+            'No inference has run yet.',
+            key: Key('inferenceLogEmpty'),
+          ),
+          AsyncData(:final value) => Column(
+            key: const Key('inferenceLog'),
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final attempt in value)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(
+                    describeInferenceAttempt(attempt),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+            ],
+          ),
+          AsyncError(:final error) => Text('Could not load the log: $error'),
+          _ => const SizedBox.shrink(),
+        },
+      ],
     );
   }
 }

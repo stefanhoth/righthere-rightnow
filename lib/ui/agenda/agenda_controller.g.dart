@@ -34,7 +34,7 @@ final class DailyAgendaControllerProvider
 }
 
 String _$dailyAgendaControllerHash() =>
-    r'95bb34e5ec8de496166b4fa58497591405a241db';
+    r'a13759dbcfff9c4d5280112feaf7bcbd18abd7eb';
 
 abstract class _$DailyAgendaController
     extends $AsyncNotifier<BriefingRunResult> {
@@ -197,3 +197,104 @@ final class SourceOpenerProvider
 }
 
 String _$sourceOpenerHash() => r'0cfdc7b9727c5fa42cb41bbf5d748c0d47bebb73';
+
+/// True while the model has failed to rank at
+/// [modelFailureRunsBeforeBanner] consecutive app-opens -- the Daily Agenda
+/// shows a breakage banner for as long as it holds. Re-read after every
+/// recorded attempt. A device with no model at all reports skips, not
+/// failures, and never trips this.
+
+@ProviderFor(modelRankingFailing)
+final modelRankingFailingProvider = ModelRankingFailingProvider._();
+
+/// True while the model has failed to rank at
+/// [modelFailureRunsBeforeBanner] consecutive app-opens -- the Daily Agenda
+/// shows a breakage banner for as long as it holds. Re-read after every
+/// recorded attempt. A device with no model at all reports skips, not
+/// failures, and never trips this.
+
+final class ModelRankingFailingProvider
+    extends $FunctionalProvider<AsyncValue<bool>, bool, FutureOr<bool>>
+    with $FutureModifier<bool>, $FutureProvider<bool> {
+  /// True while the model has failed to rank at
+  /// [modelFailureRunsBeforeBanner] consecutive app-opens -- the Daily Agenda
+  /// shows a breakage banner for as long as it holds. Re-read after every
+  /// recorded attempt. A device with no model at all reports skips, not
+  /// failures, and never trips this.
+  ModelRankingFailingProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'modelRankingFailingProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$modelRankingFailingHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<bool> $createElement($ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<bool> create(Ref ref) {
+    return modelRankingFailing(ref);
+  }
+}
+
+String _$modelRankingFailingHash() =>
+    r'847c8127e33480ac0ed1f95cb0ef1204c74bf838';
+
+/// The most recent inference attempts, newest first -- the dev screen's
+/// log of what the model did and how long it took (Task 4.3).
+
+@ProviderFor(recentInferenceAttempts)
+final recentInferenceAttemptsProvider = RecentInferenceAttemptsProvider._();
+
+/// The most recent inference attempts, newest first -- the dev screen's
+/// log of what the model did and how long it took (Task 4.3).
+
+final class RecentInferenceAttemptsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<InferenceAttemptRecord>>,
+          List<InferenceAttemptRecord>,
+          FutureOr<List<InferenceAttemptRecord>>
+        >
+    with
+        $FutureModifier<List<InferenceAttemptRecord>>,
+        $FutureProvider<List<InferenceAttemptRecord>> {
+  /// The most recent inference attempts, newest first -- the dev screen's
+  /// log of what the model did and how long it took (Task 4.3).
+  RecentInferenceAttemptsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'recentInferenceAttemptsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$recentInferenceAttemptsHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<List<InferenceAttemptRecord>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<InferenceAttemptRecord>> create(Ref ref) {
+    return recentInferenceAttempts(ref);
+  }
+}
+
+String _$recentInferenceAttemptsHash() =>
+    r'39105c85364e297014b972c1b87f87900a0c8195';

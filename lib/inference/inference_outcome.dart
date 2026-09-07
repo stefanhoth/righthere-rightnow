@@ -67,3 +67,17 @@ final class InferenceFailed<T> extends InferenceOutcome<T> {
   /// after the fact.
   final String? detail;
 }
+
+/// The three terminal shapes an [InferenceOutcome] can take, flattened for
+/// storage and for the dev screen's attempt log. The [InferenceFailure] or
+/// [EngineAvailability] that names the cause is stored alongside.
+enum InferenceResultKind { succeeded, skipped, failed }
+
+/// Which [InferenceResultKind] an [outcome] is.
+InferenceResultKind inferenceResultKind(InferenceOutcome<Object?> outcome) {
+  return switch (outcome) {
+    InferenceSucceeded<Object?>() => InferenceResultKind.succeeded,
+    InferenceSkipped<Object?>() => InferenceResultKind.skipped,
+    InferenceFailed<Object?>() => InferenceResultKind.failed,
+  };
+}
