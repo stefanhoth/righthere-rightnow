@@ -5,6 +5,7 @@ import 'package:meta/meta.dart';
 import 'package:righthere_rightnow/briefing/candidate_set_assembly.dart';
 import 'package:righthere_rightnow/briefing/clock.dart';
 import 'package:righthere_rightnow/briefing/fallback_ranker.dart';
+import 'package:righthere_rightnow/briefing/what_matters_extraction.dart';
 import 'package:righthere_rightnow/data/calendar/calendar_exception.dart';
 import 'package:righthere_rightnow/data/calendar/calendar_reader.dart';
 import 'package:righthere_rightnow/data/db/app_database.dart';
@@ -132,7 +133,20 @@ class BriefingRunOrchestrator {
     // appear in the snapshot as something that competed.
     final dismissed = await database.dismissedItemIds();
 
-    final assembler = CandidateSetAssembler(clock: clock, rank: fallbackScore);
+    // The last extraction a *previous* app-open persisted (ADR-0008). Its
+    // never-decays list drives the escalation branch of the fallback ranker
+    // (ADR-0007); a changed document is re-extracted at app-open and reaches
+    // the next run, not this one. Null -- no What Matters, or never yet
+    // extracted -- reproduces pure decay.
+    final storedExtraction = await database.storedWhatMattersExtraction();
+    final neverDecays =
+        storedExtraction?.extraction.neverDecays.toSet() ?? const <String>{};
+
+    final assembler = CandidateSetAssembler(
+      clock: clock,
+      rank: (item, itemClock) =>
+          fallbackScore(item, itemClock, neverDecays: neverDecays),
+    );
     final candidateSet = assembler.assemble(
       fetchedCommitments: commitmentsOutcome.items
           .where((commitment) => !dismissed.contains(commitment.id))
@@ -145,6 +159,7 @@ class BriefingRunOrchestrator {
     final rankedItems = rankFallback(
       candidateSet.items.map((candidate) => candidate.item).toList(),
       clock,
+      neverDecays: neverDecays,
     );
 
     final completedAt = clock();
@@ -155,12 +170,12 @@ class BriefingRunOrchestrator {
     ].join('; ');
 
     // Snapshotted as the run saw them (ADR-0008), neither backfillable: the
-    // prose from this run's fetch, and whatever extraction the last app-open
-    // left in the cache. A changed document is re-extracted at app-open and
-    // affects the *next* run's snapshot, not this one.
+    // prose from this run's fetch, and the extraction the last app-open left
+    // in the cache -- the same one the ranker just used above.
     final whatMattersProse = whatMattersOutcome.document?.prose;
-    final whatMattersExtractionJson = await database
-        .storedWhatMattersExtractionJson();
+    final whatMattersExtractionJson = storedExtraction == null
+        ? null
+        : whatMattersExtractionToJson(storedExtraction.extraction);
 
     final runId = await _persist(
       startedAt: startedAt,
