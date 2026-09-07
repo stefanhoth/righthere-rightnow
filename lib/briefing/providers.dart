@@ -3,7 +3,7 @@ import 'package:righthere_rightnow/briefing/framing_line_generator.dart';
 import 'package:righthere_rightnow/briefing/model_reranker.dart';
 import 'package:righthere_rightnow/briefing/what_matters_extractor.dart';
 import 'package:righthere_rightnow/data/providers.dart';
-import 'package:righthere_rightnow/inference/built_in_ai_engine.dart';
+import 'package:righthere_rightnow/inference/gemma_lite_rt_engine.dart';
 import 'package:righthere_rightnow/inference/inference_engine.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -21,11 +21,14 @@ BriefingRunOrchestrator briefingRunOrchestrator(Ref ref) {
   );
 }
 
-/// Kept alive: [BuiltInAiEngine] loads and caches the model once inference
-/// is first requested (documented cold start of up to ~10s) -- recreating
-/// it on every app open would pay that cost every time.
+/// Kept alive: [GemmaLiteRtEngine] loads and caches ~2 GB of model weights
+/// the first time inference is requested -- recreating it on every app open
+/// would pay that cost every time.
+///
+/// `BuiltInAiEngine` (Gemini Nano) stays in the tree as the ADR-0004
+/// fallback; see DECISIONS.md (2026-08-31) for why it is not the default.
 @Riverpod(keepAlive: true)
-InferenceEngine inferenceEngine(Ref ref) => BuiltInAiEngine();
+InferenceEngine inferenceEngine(Ref ref) => GemmaLiteRtEngine();
 
 @riverpod
 ModelReranker modelReranker(Ref ref) {

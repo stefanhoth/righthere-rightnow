@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:righthere_rightnow/data/battery_optimization.dart'
     as battery_optimization;
+import 'package:righthere_rightnow/inference/gemma_lite_rt_engine.dart';
 import 'package:righthere_rightnow/scheduling/run_time.dart';
 import 'package:righthere_rightnow/ui/dev/prompt_screen.dart';
 import 'package:righthere_rightnow/ui/settings/run_time_controller.dart';
@@ -55,6 +56,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final wmEntryStatus = ref.watch(whatMattersEntryControllerProvider);
     final wmConnection = ref.watch(storedWhatMattersConnectionProvider);
     final wmCached = ref.watch(cachedWhatMattersProvider);
+    final modelStatus = ref.watch(gemmaModelStatusProvider);
     final calendarPermission = ref.watch(calendarPermissionStatusProvider);
     final storedRunTime = ref.watch(storedRunTimeProvider);
     final nextScheduledRun = ref.watch(nextScheduledRunProvider);
@@ -270,6 +272,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
             loading: () => const SizedBox.shrink(),
             error: (_, _) => const SizedBox.shrink(),
+          ),
+          const SizedBox(height: 24),
+          Text('Model', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          modelStatus.when(
+            data: (status) => _ModelStatusView(
+              status: status,
+              onRecheck: () => ref.invalidate(gemmaModelStatusProvider),
+            ),
+            loading: () => const SizedBox.shrink(),
+            error: (_, _) => const Text('Could not check for the model file.'),
           ),
           const SizedBox(height: 24),
           Text('Developer', style: Theme.of(context).textTheme.titleMedium),
@@ -564,6 +577,55 @@ class _WhatMattersEditor extends StatelessWidget {
 /// One checkbox per calendar. A box is ticked when the calendar is in the
 /// stored selection, or when the selection is empty -- an empty selection
 /// means every calendar.
+/// Whether the hand-delivered Gemma `.litertlm` file is in place, and the
+/// `adb push` target if not. There is no in-app download yet -- see
+/// DECISIONS.md (2026-08-31).
+class _ModelStatusView extends StatelessWidget {
+  const _ModelStatusView({required this.status, required this.onRecheck});
+
+  final GemmaModelStatus status;
+  final VoidCallback onRecheck;
+
+  @override
+  Widget build(BuildContext context) {
+    if (status.expectedPath == null) {
+      return const Text(
+        'This platform cannot run a local model.',
+        key: Key('modelStatus'),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          status.isPresent
+              ? 'Gemma 4 model in place (${_gib(status.sizeBytes!)}).'
+              : 'No model file. Ranking and framing fall back to rules until '
+                    'one is pushed here:',
+          key: const Key('modelStatus'),
+        ),
+        if (!status.isPresent) ...[
+          const SizedBox(height: 4),
+          SelectableText(
+            status.expectedPath!,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+        const SizedBox(height: 4),
+        TextButton(
+          key: const Key('recheckModelButton'),
+          onPressed: onRecheck,
+          child: const Text('Recheck'),
+        ),
+      ],
+    );
+  }
+
+  static String _gib(int bytes) =>
+      '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
+}
+
 class _CalendarChecklist extends ConsumerWidget {
   const _CalendarChecklist();
 

@@ -6,6 +6,7 @@ import 'package:righthere_rightnow/data/providers.dart';
 import 'package:righthere_rightnow/data/settings/selected_calendars_storage.dart';
 import 'package:righthere_rightnow/data/settings/what_matters_settings_storage.dart';
 import 'package:righthere_rightnow/data/what_matters/what_matters_document.dart';
+import 'package:righthere_rightnow/inference/gemma_lite_rt_engine.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'settings_controller.g.dart';
@@ -26,6 +27,11 @@ Future<WhatMattersConnection?> storedWhatMattersConnection(Ref ref) {
 Future<WhatMattersDocument?> cachedWhatMatters(Ref ref) {
   return ref.watch(appDatabaseProvider).cachedWhatMatters();
 }
+
+/// Whether the hand-delivered Gemma model file is in place, and where it
+/// should go if not (see DECISIONS.md, 2026-08-31).
+@riverpod
+Future<GemmaModelStatus> gemmaModelStatus(Ref ref) => readGemmaModelStatus();
 
 @riverpod
 Future<CalendarPermissionStatus> calendarPermissionStatus(Ref ref) {

@@ -43,7 +43,9 @@ class InferenceStatusController extends _$InferenceStatusController {
       // not, because a good fallback order looks exactly the same.
       InferenceSucceeded<Object?>() => isRanking ? 'Ranked by the model' : null,
       InferenceSkipped<Object?>(:final availability) => switch (availability) {
-        EngineAvailability.notReady => 'Model still downloading',
+        // The local model file has not been provided yet -- Settings names
+        // where to put it.
+        EngineAvailability.notReady => 'No local model yet — see Settings',
         EngineAvailability.unsupported => 'Model unavailable on this device',
         EngineAvailability.ready => null,
       },

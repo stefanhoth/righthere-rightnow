@@ -113,6 +113,31 @@ void main() {
       expect(parseWhatMattersExtraction(response(keep: ['  '])), isNull);
       expect(parseWhatMattersExtraction(response(keep: [7])), isNull);
     });
+
+    test('a repetition loop is collapsed, not rejected', () {
+      final looped = parseWhatMattersExtraction(
+        response(keep: List.filled(20, 'meet with every peer-EM')),
+      );
+
+      expect(looped?.neverDecays, ['meet with every peer-EM']);
+    });
+
+    test('deduplication is case-insensitive', () {
+      final extraction = parseWhatMattersExtraction(
+        response(keep: ['Call Mum', 'call mum', 'CALL MUM']),
+      );
+
+      expect(extraction?.neverDecays, ['Call Mum']);
+    });
+
+    test(
+      'an absurdly long keep list is a runaway answer, not an extraction',
+      () {
+        final tooMany = [for (var i = 0; i < 40; i++) 'keep item $i'];
+
+        expect(parseWhatMattersExtraction(response(keep: tooMany)), isNull);
+      },
+    );
   });
 
   group('canonical JSON round trip', () {
