@@ -1,6 +1,7 @@
 import 'package:righthere_rightnow/briefing/briefing_run_orchestrator.dart';
 import 'package:righthere_rightnow/briefing/framing_line_generator.dart';
 import 'package:righthere_rightnow/briefing/model_reranker.dart';
+import 'package:righthere_rightnow/briefing/what_matters_extractor.dart';
 import 'package:righthere_rightnow/data/providers.dart';
 import 'package:righthere_rightnow/inference/built_in_ai_engine.dart';
 import 'package:righthere_rightnow/inference/inference_engine.dart';
@@ -39,5 +40,14 @@ FramingLineGenerator framingLineGenerator(Ref ref) {
   return FramingLineGenerator(
     engine: ref.watch(inferenceEngineProvider),
     database: ref.watch(appDatabaseProvider),
+  );
+}
+
+@riverpod
+WhatMattersExtractor whatMattersExtractor(Ref ref) {
+  return WhatMattersExtractor(
+    engine: ref.watch(inferenceEngineProvider),
+    database: ref.watch(appDatabaseProvider),
+    clock: DateTime.now,
   );
 }

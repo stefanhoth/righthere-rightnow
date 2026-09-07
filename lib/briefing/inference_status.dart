@@ -64,10 +64,11 @@ class InferenceStatus {
   );
 }
 
-/// The two things the model is asked to do at app-open.
+/// The three things the model is asked to do at app-open.
 enum InferenceWork {
   ranking('Ranking your agenda'),
-  framing("Writing today's framing");
+  framing("Writing today's framing"),
+  extraction('Reading What Matters');
 
   const InferenceWork(this.label);
 

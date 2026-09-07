@@ -25,6 +25,7 @@ class DailyAgendaController extends _$DailyAgendaController {
     ref.read(inferenceStatusControllerProvider.notifier).reset();
     _rerankWithModel(result);
     _generateFramingLine(result);
+    _extractWhatMatters(result);
     return result;
   }
 
@@ -39,6 +40,7 @@ class DailyAgendaController extends _$DailyAgendaController {
       ref.read(inferenceStatusControllerProvider.notifier).reset();
       _rerankWithModel(result);
       _generateFramingLine(result);
+      _extractWhatMatters(result);
     }
   }
 
@@ -95,6 +97,38 @@ class DailyAgendaController extends _$DailyAgendaController {
           _mergeIntoState((current) => current.copyWith(framingLine: line));
         }
       }),
+    );
+  }
+
+  /// Reads structure out of the What Matters prose once per Briefing Run
+  /// (ADR-0008), only if the document has changed. Fire-and-forget: it feeds
+  /// the *next* run's deterministic ranker, so nothing on screen waits for
+  /// it. Recorded as an attempt for the dev screen; kept out of the status
+  /// line by [InferenceStatusController].
+  void _extractWhatMatters(BriefingRunResult fallbackResult) {
+    if (fallbackResult.whatMatters == null) {
+      // No What Matters document -- nothing to extract, and nothing worth
+      // logging an attempt for.
+      return;
+    }
+    final status = ref.read(inferenceStatusControllerProvider.notifier)
+      ..started(InferenceWork.extraction);
+    final stopwatch = Stopwatch()..start();
+    unawaited(
+      ref
+          .read(whatMattersExtractorProvider)
+          .extract(fallbackResult.whatMatters)
+          .then((outcome) {
+            stopwatch.stop();
+            _logOutcome('whatMattersExtraction', outcome);
+            _recordAttempt(
+              fallbackResult.runId,
+              InferenceWork.extraction,
+              outcome,
+              stopwatch.elapsed,
+            );
+            status.settled(InferenceWork.extraction, outcome);
+          }),
     );
   }
 
