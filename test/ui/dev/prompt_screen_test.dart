@@ -32,6 +32,14 @@ Future<AppDatabase> _pumpPromptScreen(
   WidgetTester tester, {
   Future<void> Function(AppDatabase db)? seed,
 }) async {
+  // The screen scrolls now, so a stock 800x600 viewport leaves the Save
+  // button and the sections below it off-screen. A tall window keeps every
+  // control hit-testable without threading `ensureVisible` through each tap.
+  tester.view.physicalSize = const Size(1200, 4000);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+
   final db = AppDatabase.forTesting(NativeDatabase.memory());
   addTearDown(db.close);
   await seed?.call(db);
