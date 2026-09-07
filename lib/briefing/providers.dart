@@ -14,6 +14,7 @@ BriefingRunOrchestrator briefingRunOrchestrator(Ref ref) {
     calendarReader: ref.watch(calendarReaderProvider),
     todoistClient: ref.watch(todoistClientProvider),
     todoistTokenStorage: ref.watch(todoistTokenStorageProvider),
+    whatMattersRepository: ref.watch(whatMattersRepositoryProvider),
     database: ref.watch(appDatabaseProvider),
     clock: DateTime.now,
   );

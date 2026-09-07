@@ -1956,8 +1956,8 @@ class InferenceAttempt extends DataClass
   final InferenceWork work;
   final InferenceResultKind result;
 
-  /// [EngineAvailability.name] when [result] is `skipped`,
-  /// [InferenceFailure.name] when it `failed`, null when it `succeeded`.
+  /// The [EngineAvailability] name when [result] is `skipped`, the
+  /// [InferenceFailure] name when it `failed`, null when it `succeeded`.
   final String? cause;
 
   /// The engine's own error text, when it threw. Never the prompt.
@@ -2265,6 +2265,256 @@ class InferenceAttemptsCompanion extends UpdateCompanion<InferenceAttempt> {
   }
 }
 
+class $WhatMattersCacheTable extends WhatMattersCache
+    with TableInfo<$WhatMattersCacheTable, WhatMattersCacheData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $WhatMattersCacheTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _proseMeta = const VerificationMeta('prose');
+  @override
+  late final GeneratedColumn<String> prose = GeneratedColumn<String>(
+    'prose',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fetchedAtMeta = const VerificationMeta(
+    'fetchedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> fetchedAt = GeneratedColumn<DateTime>(
+    'fetched_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, prose, fetchedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'what_matters_cache';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<WhatMattersCacheData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('prose')) {
+      context.handle(
+        _proseMeta,
+        prose.isAcceptableOrUnknown(data['prose']!, _proseMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_proseMeta);
+    }
+    if (data.containsKey('fetched_at')) {
+      context.handle(
+        _fetchedAtMeta,
+        fetchedAt.isAcceptableOrUnknown(data['fetched_at']!, _fetchedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_fetchedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  WhatMattersCacheData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return WhatMattersCacheData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      prose: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}prose'],
+      )!,
+      fetchedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}fetched_at'],
+      )!,
+    );
+  }
+
+  @override
+  $WhatMattersCacheTable createAlias(String alias) {
+    return $WhatMattersCacheTable(attachedDatabase, alias);
+  }
+}
+
+class WhatMattersCacheData extends DataClass
+    implements Insertable<WhatMattersCacheData> {
+  final int id;
+  final String prose;
+  final DateTime fetchedAt;
+  const WhatMattersCacheData({
+    required this.id,
+    required this.prose,
+    required this.fetchedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['prose'] = Variable<String>(prose);
+    map['fetched_at'] = Variable<DateTime>(fetchedAt);
+    return map;
+  }
+
+  WhatMattersCacheCompanion toCompanion(bool nullToAbsent) {
+    return WhatMattersCacheCompanion(
+      id: Value(id),
+      prose: Value(prose),
+      fetchedAt: Value(fetchedAt),
+    );
+  }
+
+  factory WhatMattersCacheData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return WhatMattersCacheData(
+      id: serializer.fromJson<int>(json['id']),
+      prose: serializer.fromJson<String>(json['prose']),
+      fetchedAt: serializer.fromJson<DateTime>(json['fetchedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'prose': serializer.toJson<String>(prose),
+      'fetchedAt': serializer.toJson<DateTime>(fetchedAt),
+    };
+  }
+
+  WhatMattersCacheData copyWith({
+    int? id,
+    String? prose,
+    DateTime? fetchedAt,
+  }) => WhatMattersCacheData(
+    id: id ?? this.id,
+    prose: prose ?? this.prose,
+    fetchedAt: fetchedAt ?? this.fetchedAt,
+  );
+  WhatMattersCacheData copyWithCompanion(WhatMattersCacheCompanion data) {
+    return WhatMattersCacheData(
+      id: data.id.present ? data.id.value : this.id,
+      prose: data.prose.present ? data.prose.value : this.prose,
+      fetchedAt: data.fetchedAt.present ? data.fetchedAt.value : this.fetchedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WhatMattersCacheData(')
+          ..write('id: $id, ')
+          ..write('prose: $prose, ')
+          ..write('fetchedAt: $fetchedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, prose, fetchedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is WhatMattersCacheData &&
+          other.id == this.id &&
+          other.prose == this.prose &&
+          other.fetchedAt == this.fetchedAt);
+}
+
+class WhatMattersCacheCompanion extends UpdateCompanion<WhatMattersCacheData> {
+  final Value<int> id;
+  final Value<String> prose;
+  final Value<DateTime> fetchedAt;
+  const WhatMattersCacheCompanion({
+    this.id = const Value.absent(),
+    this.prose = const Value.absent(),
+    this.fetchedAt = const Value.absent(),
+  });
+  WhatMattersCacheCompanion.insert({
+    this.id = const Value.absent(),
+    required String prose,
+    required DateTime fetchedAt,
+  }) : prose = Value(prose),
+       fetchedAt = Value(fetchedAt);
+  static Insertable<WhatMattersCacheData> custom({
+    Expression<int>? id,
+    Expression<String>? prose,
+    Expression<DateTime>? fetchedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (prose != null) 'prose': prose,
+      if (fetchedAt != null) 'fetched_at': fetchedAt,
+    });
+  }
+
+  WhatMattersCacheCompanion copyWith({
+    Value<int>? id,
+    Value<String>? prose,
+    Value<DateTime>? fetchedAt,
+  }) {
+    return WhatMattersCacheCompanion(
+      id: id ?? this.id,
+      prose: prose ?? this.prose,
+      fetchedAt: fetchedAt ?? this.fetchedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (prose.present) {
+      map['prose'] = Variable<String>(prose.value);
+    }
+    if (fetchedAt.present) {
+      map['fetched_at'] = Variable<DateTime>(fetchedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WhatMattersCacheCompanion(')
+          ..write('id: $id, ')
+          ..write('prose: $prose, ')
+          ..write('fetchedAt: $fetchedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2275,6 +2525,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $DismissedItemsTable dismissedItems = $DismissedItemsTable(this);
   late final $InferenceAttemptsTable inferenceAttempts =
       $InferenceAttemptsTable(this);
+  late final $WhatMattersCacheTable whatMattersCache = $WhatMattersCacheTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2286,6 +2539,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     prompts,
     dismissedItems,
     inferenceAttempts,
+    whatMattersCache,
   ];
 }
 
@@ -4162,6 +4416,172 @@ typedef $$InferenceAttemptsTableProcessedTableManager =
       InferenceAttempt,
       PrefetchHooks Function({bool runId})
     >;
+typedef $$WhatMattersCacheTableCreateCompanionBuilder =
+    WhatMattersCacheCompanion Function({
+      Value<int> id,
+      required String prose,
+      required DateTime fetchedAt,
+    });
+typedef $$WhatMattersCacheTableUpdateCompanionBuilder =
+    WhatMattersCacheCompanion Function({
+      Value<int> id,
+      Value<String> prose,
+      Value<DateTime> fetchedAt,
+    });
+
+class $$WhatMattersCacheTableFilterComposer
+    extends Composer<_$AppDatabase, $WhatMattersCacheTable> {
+  $$WhatMattersCacheTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get prose => $composableBuilder(
+    column: $table.prose,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get fetchedAt => $composableBuilder(
+    column: $table.fetchedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$WhatMattersCacheTableOrderingComposer
+    extends Composer<_$AppDatabase, $WhatMattersCacheTable> {
+  $$WhatMattersCacheTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get prose => $composableBuilder(
+    column: $table.prose,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get fetchedAt => $composableBuilder(
+    column: $table.fetchedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$WhatMattersCacheTableAnnotationComposer
+    extends Composer<_$AppDatabase, $WhatMattersCacheTable> {
+  $$WhatMattersCacheTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get prose =>
+      $composableBuilder(column: $table.prose, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get fetchedAt =>
+      $composableBuilder(column: $table.fetchedAt, builder: (column) => column);
+}
+
+class $$WhatMattersCacheTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $WhatMattersCacheTable,
+          WhatMattersCacheData,
+          $$WhatMattersCacheTableFilterComposer,
+          $$WhatMattersCacheTableOrderingComposer,
+          $$WhatMattersCacheTableAnnotationComposer,
+          $$WhatMattersCacheTableCreateCompanionBuilder,
+          $$WhatMattersCacheTableUpdateCompanionBuilder,
+          (
+            WhatMattersCacheData,
+            BaseReferences<
+              _$AppDatabase,
+              $WhatMattersCacheTable,
+              WhatMattersCacheData
+            >,
+          ),
+          WhatMattersCacheData,
+          PrefetchHooks Function()
+        > {
+  $$WhatMattersCacheTableTableManager(
+    _$AppDatabase db,
+    $WhatMattersCacheTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$WhatMattersCacheTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$WhatMattersCacheTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$WhatMattersCacheTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> prose = const Value.absent(),
+                Value<DateTime> fetchedAt = const Value.absent(),
+              }) => WhatMattersCacheCompanion(
+                id: id,
+                prose: prose,
+                fetchedAt: fetchedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String prose,
+                required DateTime fetchedAt,
+              }) => WhatMattersCacheCompanion.insert(
+                id: id,
+                prose: prose,
+                fetchedAt: fetchedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$WhatMattersCacheTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $WhatMattersCacheTable,
+      WhatMattersCacheData,
+      $$WhatMattersCacheTableFilterComposer,
+      $$WhatMattersCacheTableOrderingComposer,
+      $$WhatMattersCacheTableAnnotationComposer,
+      $$WhatMattersCacheTableCreateCompanionBuilder,
+      $$WhatMattersCacheTableUpdateCompanionBuilder,
+      (
+        WhatMattersCacheData,
+        BaseReferences<
+          _$AppDatabase,
+          $WhatMattersCacheTable,
+          WhatMattersCacheData
+        >,
+      ),
+      WhatMattersCacheData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4178,4 +4598,6 @@ class $AppDatabaseManager {
       $$DismissedItemsTableTableManager(_db, _db.dismissedItems);
   $$InferenceAttemptsTableTableManager get inferenceAttempts =>
       $$InferenceAttemptsTableTableManager(_db, _db.inferenceAttempts);
+  $$WhatMattersCacheTableTableManager get whatMattersCache =>
+      $$WhatMattersCacheTableTableManager(_db, _db.whatMattersCache);
 }

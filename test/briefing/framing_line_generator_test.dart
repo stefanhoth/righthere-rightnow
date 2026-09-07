@@ -14,6 +14,8 @@ import 'package:righthere_rightnow/data/todoist/todoist_client.dart';
 import 'package:righthere_rightnow/inference/inference_engine.dart';
 import 'package:righthere_rightnow/inference/inference_outcome.dart';
 
+import '../support/fake_what_matters_repository.dart';
+
 class _MockCalendarReader extends Mock implements CalendarReader {}
 
 class _MockTodoistClient extends Mock implements TodoistClient {}
@@ -119,6 +121,7 @@ void main() {
       calendarReader: calendarReader,
       todoistClient: todoistClient,
       todoistTokenStorage: tokenStorage,
+      whatMattersRepository: stubWhatMattersRepository(),
       database: database,
       clock: clock,
     );

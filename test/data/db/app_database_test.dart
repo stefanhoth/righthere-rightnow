@@ -420,4 +420,36 @@ void main() {
       },
     );
   });
+
+  group('what matters cache', () {
+    test('is null until a copy is cached', () async {
+      expect(await db.cachedWhatMatters(), isNull);
+    });
+
+    test('a cached copy reads back with its fetch time', () async {
+      await db.cacheWhatMatters(
+        prose: '# What matters',
+        fetchedAt: DateTime.utc(2026, 8, 31, 6),
+      );
+
+      final cached = await db.cachedWhatMatters();
+      expect(cached!.prose, '# What matters');
+      expect(cached.fetchedAt, DateTime.utc(2026, 8, 31, 6));
+    });
+
+    test('a second cache replaces the first -- only ever one copy', () async {
+      await db.cacheWhatMatters(
+        prose: 'old',
+        fetchedAt: DateTime.utc(2026, 8, 30),
+      );
+      await db.cacheWhatMatters(
+        prose: 'new',
+        fetchedAt: DateTime.utc(2026, 8, 31),
+      );
+
+      final rows = await db.select(db.whatMattersCache).get();
+      expect(rows, hasLength(1));
+      expect(rows.single.prose, 'new');
+    });
+  });
 }

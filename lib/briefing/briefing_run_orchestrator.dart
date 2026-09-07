@@ -11,6 +11,7 @@ import 'package:righthere_rightnow/data/db/app_database.dart';
 import 'package:righthere_rightnow/data/db/candidate_item_json.dart';
 import 'package:righthere_rightnow/data/settings/todoist_token_storage.dart';
 import 'package:righthere_rightnow/data/todoist/todoist_client.dart';
+import 'package:righthere_rightnow/data/what_matters/what_matters_repository.dart';
 import 'package:righthere_rightnow/domain/agenda_item.dart';
 import 'package:righthere_rightnow/domain/candidate_set.dart';
 import 'package:righthere_rightnow/domain/ranked_agenda.dart';
@@ -90,6 +91,7 @@ class BriefingRunOrchestrator {
     required this.calendarReader,
     required this.todoistClient,
     required this.todoistTokenStorage,
+    required this.whatMattersRepository,
     required this.database,
     required this.clock,
   });
@@ -97,6 +99,7 @@ class BriefingRunOrchestrator {
   final CalendarReader calendarReader;
   final TodoistClient todoistClient;
   final TodoistTokenStorage todoistTokenStorage;
+  final WhatMattersRepository whatMattersRepository;
   final AppDatabase database;
   final Clock clock;
 
@@ -104,12 +107,17 @@ class BriefingRunOrchestrator {
     final startedAt = clock();
     final window = commitmentFetchWindow(clock);
 
-    // Started together, not one after another: both futures begin running
-    // before either is awaited.
+    // Started together, not one after another: all three begin running
+    // before any is awaited.
     final commitmentsFuture = _fetchCommitments(window);
     final tasksFuture = _fetchTasks();
+    final whatMattersFuture = whatMattersRepository.read();
     final commitmentsOutcome = await commitmentsFuture;
     final tasksOutcome = await tasksFuture;
+    // The prose is not consumed yet -- Task 4.5 extracts structure from it.
+    // For now the run refreshes the cache and folds a fetch failure into the
+    // partial-data state, exactly as a Todoist outage does.
+    final whatMattersOutcome = await whatMattersFuture;
 
     // A dismissed Agenda Item is gone before ranking, not hidden after it:
     // it must not occupy one of the 25 candidate slots, reach the model, or
@@ -132,7 +140,11 @@ class BriefingRunOrchestrator {
     );
 
     final completedAt = clock();
-    final error = [?commitmentsOutcome.error, ?tasksOutcome.error].join('; ');
+    final error = [
+      ?commitmentsOutcome.error,
+      ?tasksOutcome.error,
+      ?whatMattersOutcome.error,
+    ].join('; ');
 
     final runId = await _persist(
       startedAt: startedAt,

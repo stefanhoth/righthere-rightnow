@@ -43,6 +43,98 @@ final class StoredTodoistTokenProvider
 String _$storedTodoistTokenHash() =>
     r'001f9e768e8e4bb82f427c724e90e5772f5fa576';
 
+@ProviderFor(storedWhatMattersConnection)
+final storedWhatMattersConnectionProvider =
+    StoredWhatMattersConnectionProvider._();
+
+final class StoredWhatMattersConnectionProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<WhatMattersConnection?>,
+          WhatMattersConnection?,
+          FutureOr<WhatMattersConnection?>
+        >
+    with
+        $FutureModifier<WhatMattersConnection?>,
+        $FutureProvider<WhatMattersConnection?> {
+  StoredWhatMattersConnectionProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'storedWhatMattersConnectionProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$storedWhatMattersConnectionHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<WhatMattersConnection?> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<WhatMattersConnection?> create(Ref ref) {
+    return storedWhatMattersConnection(ref);
+  }
+}
+
+String _$storedWhatMattersConnectionHash() =>
+    r'61fc8b3592da2f4b00f79d57aea3c380685a9c85';
+
+/// The last good What Matters copy, so settings can show its age -- distinct
+/// from the connection, which may be set before the first successful fetch.
+
+@ProviderFor(cachedWhatMatters)
+final cachedWhatMattersProvider = CachedWhatMattersProvider._();
+
+/// The last good What Matters copy, so settings can show its age -- distinct
+/// from the connection, which may be set before the first successful fetch.
+
+final class CachedWhatMattersProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<WhatMattersDocument?>,
+          WhatMattersDocument?,
+          FutureOr<WhatMattersDocument?>
+        >
+    with
+        $FutureModifier<WhatMattersDocument?>,
+        $FutureProvider<WhatMattersDocument?> {
+  /// The last good What Matters copy, so settings can show its age -- distinct
+  /// from the connection, which may be set before the first successful fetch.
+  CachedWhatMattersProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'cachedWhatMattersProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$cachedWhatMattersHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<WhatMattersDocument?> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<WhatMattersDocument?> create(Ref ref) {
+    return cachedWhatMatters(ref);
+  }
+}
+
+String _$cachedWhatMattersHash() => r'6244805d48cefa3a47c574f5ea625233cb97af5b';
+
 @ProviderFor(calendarPermissionStatus)
 final calendarPermissionStatusProvider = CalendarPermissionStatusProvider._();
 
@@ -321,6 +413,77 @@ abstract class _$TokenEntryController extends $Notifier<TokenEntryStatus> {
             as $ClassProviderElement<
               AnyNotifier<TokenEntryStatus, TokenEntryStatus>,
               TokenEntryStatus,
+              Object?,
+              Object?
+            >;
+    return element.handleCreate(ref, build);
+  }
+}
+
+/// Verifies a Nextcloud connection by fetching the file once, then persists
+/// it. Mirrors [TokenEntryController]: `invalid` is a rejected credential,
+/// `error` is a wrong path or an unreachable server.
+
+@ProviderFor(WhatMattersEntryController)
+final whatMattersEntryControllerProvider =
+    WhatMattersEntryControllerProvider._();
+
+/// Verifies a Nextcloud connection by fetching the file once, then persists
+/// it. Mirrors [TokenEntryController]: `invalid` is a rejected credential,
+/// `error` is a wrong path or an unreachable server.
+final class WhatMattersEntryControllerProvider
+    extends
+        $NotifierProvider<WhatMattersEntryController, WhatMattersEntryStatus> {
+  /// Verifies a Nextcloud connection by fetching the file once, then persists
+  /// it. Mirrors [TokenEntryController]: `invalid` is a rejected credential,
+  /// `error` is a wrong path or an unreachable server.
+  WhatMattersEntryControllerProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'whatMattersEntryControllerProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$whatMattersEntryControllerHash();
+
+  @$internal
+  @override
+  WhatMattersEntryController create() => WhatMattersEntryController();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(WhatMattersEntryStatus value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<WhatMattersEntryStatus>(value),
+    );
+  }
+}
+
+String _$whatMattersEntryControllerHash() =>
+    r'8fc73fd9887c6b237be8a52738defea992b1dcd8';
+
+/// Verifies a Nextcloud connection by fetching the file once, then persists
+/// it. Mirrors [TokenEntryController]: `invalid` is a rejected credential,
+/// `error` is a wrong path or an unreachable server.
+
+abstract class _$WhatMattersEntryController
+    extends $Notifier<WhatMattersEntryStatus> {
+  WhatMattersEntryStatus build();
+  @$mustCallSuper
+  @override
+  WhenComplete runBuild() {
+    final ref =
+        this.ref as $Ref<WhatMattersEntryStatus, WhatMattersEntryStatus>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<WhatMattersEntryStatus, WhatMattersEntryStatus>,
+              WhatMattersEntryStatus,
               Object?,
               Object?
             >;

@@ -3,7 +3,10 @@ import 'package:righthere_rightnow/briefing/briefing_run_orchestrator.dart';
 import 'package:righthere_rightnow/data/calendar/calendar_reader.dart';
 import 'package:righthere_rightnow/data/db/app_database.dart';
 import 'package:righthere_rightnow/data/settings/todoist_token_storage.dart';
+import 'package:righthere_rightnow/data/settings/what_matters_settings_storage.dart';
 import 'package:righthere_rightnow/data/todoist/todoist_client.dart';
+import 'package:righthere_rightnow/data/what_matters/what_matters_client.dart';
+import 'package:righthere_rightnow/data/what_matters/what_matters_repository.dart';
 import 'package:righthere_rightnow/scheduling/focus_pull_notification.dart';
 
 /// Separate from the Focus Pull notification channel (Task 2.4) -- this one
@@ -65,11 +68,18 @@ void briefingServiceCallback() {
 class _BriefingTaskHandler extends TaskHandler {
   @override
   Future<void> onStart(DateTime timestamp, TaskStarter starter) async {
+    final database = AppDatabase();
     final orchestrator = BriefingRunOrchestrator(
       calendarReader: CalendarReader(),
       todoistClient: TodoistClient(),
       todoistTokenStorage: TodoistTokenStorage(),
-      database: AppDatabase(),
+      whatMattersRepository: WhatMattersRepository(
+        client: WhatMattersClient(),
+        settings: WhatMattersSettingsStorage(),
+        database: database,
+        clock: DateTime.now,
+      ),
+      database: database,
       clock: DateTime.now,
     );
 

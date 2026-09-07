@@ -21,6 +21,8 @@ import 'package:righthere_rightnow/ui/agenda/agenda_controller.dart';
 import 'package:righthere_rightnow/ui/agenda/daily_agenda_screen.dart';
 import 'package:righthere_rightnow/ui/agenda/source_opener.dart';
 
+import '../../support/fake_what_matters_repository.dart';
+
 class _MockCalendarReader extends Mock implements CalendarReader {}
 
 class _MockTodoistClient extends Mock implements TodoistClient {}
@@ -71,6 +73,7 @@ class _FakeOrchestrator extends BriefingRunOrchestrator {
         calendarReader: _MockCalendarReader(),
         todoistClient: _MockTodoistClient(),
         todoistTokenStorage: _MockTodoistTokenStorage(),
+        whatMattersRepository: stubWhatMattersRepository(),
         database: AppDatabase.forTesting(NativeDatabase.memory()),
         clock: DateTime.now,
       );

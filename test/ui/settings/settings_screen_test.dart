@@ -5,7 +5,10 @@ import 'package:flutter_secure_storage_platform_interface/flutter_secure_storage
 import 'package:flutter_test/flutter_test.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:righthere_rightnow/data/providers.dart';
+import 'package:righthere_rightnow/data/settings/what_matters_settings_storage.dart';
 import 'package:righthere_rightnow/data/todoist/todoist_client.dart';
+import 'package:righthere_rightnow/data/what_matters/what_matters_client.dart';
+import 'package:righthere_rightnow/data/what_matters/what_matters_document.dart';
 import 'package:righthere_rightnow/ui/settings/settings_controller.dart';
 import 'package:righthere_rightnow/ui/settings/settings_screen.dart';
 
@@ -70,13 +73,37 @@ class _FakeTodoistClient extends TodoistClient {
   Future<bool> verifyToken(String token) async => isValid;
 }
 
+class _FakeWhatMattersClient extends WhatMattersClient {
+  _FakeWhatMattersClient({required this.readable});
+
+  final bool readable;
+
+  @override
+  Future<bool> verify({
+    required String baseUrl,
+    required String path,
+    required String username,
+    required String appPassword,
+  }) async => readable;
+}
+
 Future<void> _pumpSettingsScreen(
   WidgetTester tester, {
   required bool tokenIsValid,
   PermissionStatus batteryOptimizationStatus = PermissionStatus.granted,
   List<Calendar> calendars = const [],
   String? existingToken,
+  bool whatMattersReadable = true,
+  WhatMattersConnection? existingWhatMatters,
+  WhatMattersDocument? cachedWhatMatters,
 }) async {
+  // The settings list is long; a tall surface keeps every section on screen
+  // so tests can tap buttons without fighting the scroll view.
+  tester.view.physicalSize = const Size(1200, 4000);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
@@ -85,6 +112,16 @@ Future<void> _pumpSettingsScreen(
         ),
         if (existingToken != null)
           storedTodoistTokenProvider.overrideWith((ref) async => existingToken),
+        if (existingWhatMatters != null)
+          storedWhatMattersConnectionProvider.overrideWith(
+            (ref) async => existingWhatMatters,
+          ),
+        whatMattersClientProvider.overrideWithValue(
+          _FakeWhatMattersClient(readable: whatMattersReadable),
+        ),
+        cachedWhatMattersProvider.overrideWith(
+          (ref) async => cachedWhatMatters,
+        ),
         calendarPermissionStatusProvider.overrideWith(
           (ref) async => CalendarPermissionStatus.granted,
         ),
@@ -262,5 +299,114 @@ void main() {
       find.byKey(const Key('requestBatteryExemptionButton')),
       findsOneWidget,
     );
+  });
+
+  group('What Matters', () {
+    const connection = WhatMattersConnection(
+      baseUrl: 'https://cloud.example.com/dav',
+      path: '/Notes/What Matters.md',
+      username: 'me',
+      appPassword: 'app-pw',
+    );
+
+    Future<void> fillEditor(
+      WidgetTester tester, {
+      String appPassword = 'pw',
+    }) async {
+      await tester.enterText(
+        find.byKey(const Key('whatMattersBaseUrlField')),
+        connection.baseUrl,
+      );
+      await tester.enterText(
+        find.byKey(const Key('whatMattersPathField')),
+        connection.path,
+      );
+      await tester.enterText(
+        find.byKey(const Key('whatMattersUsernameField')),
+        connection.username,
+      );
+      await tester.enterText(
+        find.byKey(const Key('whatMattersPasswordField')),
+        appPassword,
+      );
+    }
+
+    testWidgets('a fresh setup shows the editor inline', (tester) async {
+      await _pumpSettingsScreen(tester, tokenIsValid: true);
+
+      expect(find.byKey(const Key('whatMattersBaseUrlField')), findsOneWidget);
+      expect(find.byKey(const Key('editWhatMattersButton')), findsNothing);
+    });
+
+    testWidgets('a saved connection collapses to a one-line summary', (
+      tester,
+    ) async {
+      await _pumpSettingsScreen(
+        tester,
+        tokenIsValid: true,
+        existingWhatMatters: connection,
+        cachedWhatMatters: WhatMattersDocument(
+          prose: '# What matters',
+          fetchedAt: DateTime.now().subtract(const Duration(hours: 3)),
+        ),
+      );
+
+      expect(find.text('Reading /Notes/What Matters.md'), findsOneWidget);
+      expect(find.text('Last fetched 3 h ago.'), findsOneWidget);
+      expect(find.byKey(const Key('whatMattersBaseUrlField')), findsNothing);
+    });
+
+    testWidgets('Replace reveals an editor that Cancel collapses', (
+      tester,
+    ) async {
+      await _pumpSettingsScreen(
+        tester,
+        tokenIsValid: true,
+        existingWhatMatters: connection,
+      );
+
+      await tester.tap(find.byKey(const Key('editWhatMattersButton')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('whatMattersBaseUrlField')), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('cancelWhatMattersEditButton')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('whatMattersBaseUrlField')), findsNothing);
+      expect(find.text('Reading /Notes/What Matters.md'), findsOneWidget);
+    });
+
+    testWidgets('a readable connection verifies, is saved, and collapses', (
+      tester,
+    ) async {
+      await _pumpSettingsScreen(tester, tokenIsValid: true);
+
+      await fillEditor(tester);
+      await tester.tap(find.byKey(const Key('whatMattersVerifyButton')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Saved.'), findsOneWidget);
+      expect(find.text('Reading /Notes/What Matters.md'), findsOneWidget);
+      expect(find.byKey(const Key('whatMattersBaseUrlField')), findsNothing);
+    });
+
+    testWidgets('a rejected credential is reported and the editor stays open', (
+      tester,
+    ) async {
+      await _pumpSettingsScreen(
+        tester,
+        tokenIsValid: true,
+        whatMattersReadable: false,
+      );
+
+      await fillEditor(tester, appPassword: 'wrong');
+      await tester.tap(find.byKey(const Key('whatMattersVerifyButton')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Nextcloud rejected that username or app password.'),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('whatMattersBaseUrlField')), findsOneWidget);
+    });
   });
 }

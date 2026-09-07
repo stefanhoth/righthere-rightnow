@@ -278,3 +278,147 @@ final class AppDatabaseProvider
 }
 
 String _$appDatabaseHash() => r'949aad4bd88cefe20d76eb16900b182b5fcb494c';
+
+@ProviderFor(whatMattersSettingsStorage)
+final whatMattersSettingsStorageProvider =
+    WhatMattersSettingsStorageProvider._();
+
+final class WhatMattersSettingsStorageProvider
+    extends
+        $FunctionalProvider<
+          WhatMattersSettingsStorage,
+          WhatMattersSettingsStorage,
+          WhatMattersSettingsStorage
+        >
+    with $Provider<WhatMattersSettingsStorage> {
+  WhatMattersSettingsStorageProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'whatMattersSettingsStorageProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$whatMattersSettingsStorageHash();
+
+  @$internal
+  @override
+  $ProviderElement<WhatMattersSettingsStorage> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  WhatMattersSettingsStorage create(Ref ref) {
+    return whatMattersSettingsStorage(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(WhatMattersSettingsStorage value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<WhatMattersSettingsStorage>(value),
+    );
+  }
+}
+
+String _$whatMattersSettingsStorageHash() =>
+    r'dadb09dd5ed7a8f552b97359683bcdb19ad72e70';
+
+@ProviderFor(whatMattersClient)
+final whatMattersClientProvider = WhatMattersClientProvider._();
+
+final class WhatMattersClientProvider
+    extends
+        $FunctionalProvider<
+          WhatMattersClient,
+          WhatMattersClient,
+          WhatMattersClient
+        >
+    with $Provider<WhatMattersClient> {
+  WhatMattersClientProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'whatMattersClientProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$whatMattersClientHash();
+
+  @$internal
+  @override
+  $ProviderElement<WhatMattersClient> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  WhatMattersClient create(Ref ref) {
+    return whatMattersClient(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(WhatMattersClient value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<WhatMattersClient>(value),
+    );
+  }
+}
+
+String _$whatMattersClientHash() => r'0998c1c040cd4ec5e3caa8e73cb77e1c9160f1db';
+
+@ProviderFor(whatMattersRepository)
+final whatMattersRepositoryProvider = WhatMattersRepositoryProvider._();
+
+final class WhatMattersRepositoryProvider
+    extends
+        $FunctionalProvider<
+          WhatMattersRepository,
+          WhatMattersRepository,
+          WhatMattersRepository
+        >
+    with $Provider<WhatMattersRepository> {
+  WhatMattersRepositoryProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'whatMattersRepositoryProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$whatMattersRepositoryHash();
+
+  @$internal
+  @override
+  $ProviderElement<WhatMattersRepository> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  WhatMattersRepository create(Ref ref) {
+    return whatMattersRepository(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(WhatMattersRepository value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<WhatMattersRepository>(value),
+    );
+  }
+}
+
+String _$whatMattersRepositoryHash() =>
+    r'fa1648d285ec23c354b6035de5412008b65cc46f';

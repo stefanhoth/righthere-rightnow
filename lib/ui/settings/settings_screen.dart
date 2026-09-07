@@ -19,14 +19,32 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _tokenController = TextEditingController();
+  final _wmBaseUrlController = TextEditingController();
+  final _wmPathController = TextEditingController();
+  final _wmUsernameController = TextEditingController();
+  final _wmPasswordController = TextEditingController();
 
   /// True once the user asks to replace a token that is already saved. A
   /// fresh setup (no token yet) shows the editor without this.
   bool _editingToken = false;
 
+  /// The same, for the What Matters connection.
+  bool _editingWhatMatters = false;
+
+  void _clearWhatMattersFields() {
+    _wmBaseUrlController.clear();
+    _wmPathController.clear();
+    _wmUsernameController.clear();
+    _wmPasswordController.clear();
+  }
+
   @override
   void dispose() {
     _tokenController.dispose();
+    _wmBaseUrlController.dispose();
+    _wmPathController.dispose();
+    _wmUsernameController.dispose();
+    _wmPasswordController.dispose();
     super.dispose();
   }
 
@@ -34,6 +52,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget build(BuildContext context) {
     final entryStatus = ref.watch(tokenEntryControllerProvider);
     final storedToken = ref.watch(storedTodoistTokenProvider);
+    final wmEntryStatus = ref.watch(whatMattersEntryControllerProvider);
+    final wmConnection = ref.watch(storedWhatMattersConnectionProvider);
+    final wmCached = ref.watch(cachedWhatMattersProvider);
     final calendarPermission = ref.watch(calendarPermissionStatusProvider);
     final storedRunTime = ref.watch(storedRunTimeProvider);
     final nextScheduledRun = ref.watch(nextScheduledRunProvider);
@@ -51,6 +72,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         setState(() => _editingToken = false);
       }
       _tokenController.clear();
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Saved.')));
+    });
+
+    ref.listen(whatMattersEntryControllerProvider, (_, next) {
+      if (next != WhatMattersEntryStatus.saved) {
+        return;
+      }
+      if (_editingWhatMatters) {
+        setState(() => _editingWhatMatters = false);
+      }
+      _clearWhatMattersFields();
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Saved.')));
     });
@@ -181,6 +214,64 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 const Text('Could not read battery optimisation status.'),
           ),
           const SizedBox(height: 24),
+          Text('What Matters', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          wmConnection.when(
+            data: (connection) => connection != null && !_editingWhatMatters
+                ? Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Reading ${connection.path}',
+                          key: const Key('whatMattersConnectionStatus'),
+                        ),
+                      ),
+                      TextButton(
+                        key: const Key('editWhatMattersButton'),
+                        onPressed: () =>
+                            setState(() => _editingWhatMatters = true),
+                        child: const Text('Replace'),
+                      ),
+                    ],
+                  )
+                : _WhatMattersEditor(
+                    baseUrlController: _wmBaseUrlController,
+                    pathController: _wmPathController,
+                    usernameController: _wmUsernameController,
+                    passwordController: _wmPasswordController,
+                    entryStatus: wmEntryStatus,
+                    showCancel: connection != null,
+                    onVerifyAndSave: () => ref
+                        .read(whatMattersEntryControllerProvider.notifier)
+                        .verifyAndSave(
+                          baseUrl: _wmBaseUrlController.text,
+                          path: _wmPathController.text,
+                          username: _wmUsernameController.text,
+                          appPassword: _wmPasswordController.text,
+                        ),
+                    onCancel: () => setState(() {
+                      _editingWhatMatters = false;
+                      _clearWhatMattersFields();
+                    }),
+                  ),
+            loading: () => const SizedBox.shrink(),
+            error: (_, _) => const Text('Could not read the saved connection.'),
+          ),
+          wmCached.when(
+            data: (document) => document == null
+                ? const SizedBox.shrink()
+                : Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      'Last fetched ${_ageLabel(document.fetchedAt)}.',
+                      key: const Key('whatMattersCacheAge'),
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+            loading: () => const SizedBox.shrink(),
+            error: (_, _) => const SizedBox.shrink(),
+          ),
+          const SizedBox(height: 24),
           Text('Developer', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           FilledButton(
@@ -211,6 +302,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   String _describeTimeOfDay(int hour, int minute) {
     final formatted = TimeOfDay(hour: hour, minute: minute).format(context);
     return 'Runs daily at $formatted';
+  }
+
+  /// A rough "how old is the cached copy" phrase. Precision past the hour
+  /// does not matter here -- the question is "is this stale", not "when
+  /// exactly".
+  String _ageLabel(DateTime fetchedAt) {
+    final age = DateTime.now().difference(fetchedAt);
+    if (age.inMinutes < 1) {
+      return 'just now';
+    }
+    if (age.inHours < 1) {
+      return '${age.inMinutes} min ago';
+    }
+    if (age.inDays < 1) {
+      return '${age.inHours} h ago';
+    }
+    return '${age.inDays} d ago';
   }
 
   String _describeBatteryOptimizationStatus(PermissionStatus status) {
@@ -317,6 +425,136 @@ class _TokenEditor extends StatelessWidget {
           TokenEntryStatus.idle ||
           TokenEntryStatus.verifying ||
           TokenEntryStatus.saved => const SizedBox.shrink(),
+        },
+      ],
+    );
+  }
+}
+
+/// The on-demand What Matters editor: server URL, path, username and app
+/// password, plus a verify-and-save button. Same shape as [_TokenEditor] --
+/// a fresh setup shows it with the explanatory line; replacing an existing
+/// connection shows it with a Cancel button. A successful save is confirmed
+/// by a SnackBar from the screen, not an inline message, so it survives the
+/// editor collapsing.
+class _WhatMattersEditor extends StatelessWidget {
+  const _WhatMattersEditor({
+    required this.baseUrlController,
+    required this.pathController,
+    required this.usernameController,
+    required this.passwordController,
+    required this.entryStatus,
+    required this.showCancel,
+    required this.onVerifyAndSave,
+    required this.onCancel,
+  });
+
+  final TextEditingController baseUrlController;
+  final TextEditingController pathController;
+  final TextEditingController usernameController;
+  final TextEditingController passwordController;
+  final WhatMattersEntryStatus entryStatus;
+  final bool showCancel;
+  final VoidCallback onVerifyAndSave;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final verifying = entryStatus == WhatMattersEntryStatus.verifying;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (!showCancel) ...[
+          Text(
+            'A markdown file in your Nextcloud describing what you are '
+            'working toward. Read over WebDAV with a Nextcloud app password.',
+            key: const Key('whatMattersConnectionStatus'),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 8),
+        ],
+        TextField(
+          key: const Key('whatMattersBaseUrlField'),
+          controller: baseUrlController,
+          keyboardType: TextInputType.url,
+          autocorrect: false,
+          decoration: const InputDecoration(
+            labelText: 'WebDAV base URL',
+            helperText:
+                'https://cloud.example.com/remote.php/dav/files/username',
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          key: const Key('whatMattersPathField'),
+          controller: pathController,
+          autocorrect: false,
+          decoration: const InputDecoration(
+            labelText: 'File path',
+            helperText: '/Notes/What Matters.md',
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          key: const Key('whatMattersUsernameField'),
+          controller: usernameController,
+          autocorrect: false,
+          decoration: const InputDecoration(labelText: 'Nextcloud username'),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          key: const Key('whatMattersPasswordField'),
+          controller: passwordController,
+          obscureText: true,
+          decoration: const InputDecoration(
+            labelText: 'App password',
+            helperText:
+                'Nextcloud -> Settings -> Security -> Create app password',
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            FilledButton(
+              key: const Key('whatMattersVerifyButton'),
+              onPressed: verifying ? null : onVerifyAndSave,
+              child: verifying
+                  ? const SizedBox(
+                      height: 16,
+                      width: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Verify and save'),
+            ),
+            if (showCancel) ...[
+              const SizedBox(width: 8),
+              TextButton(
+                key: const Key('cancelWhatMattersEditButton'),
+                onPressed: verifying ? null : onCancel,
+                child: const Text('Cancel'),
+              ),
+            ],
+          ],
+        ),
+        switch (entryStatus) {
+          WhatMattersEntryStatus.invalid => const Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: Text(
+              'Nextcloud rejected that username or app password.',
+              key: Key('whatMattersStatusMessage'),
+            ),
+          ),
+          WhatMattersEntryStatus.error => const Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: Text(
+              'Could not read the file. Check the URL and path.',
+              key: Key('whatMattersStatusMessage'),
+            ),
+          ),
+          WhatMattersEntryStatus.idle ||
+          WhatMattersEntryStatus.verifying ||
+          WhatMattersEntryStatus.saved => const SizedBox.shrink(),
         },
       ],
     );

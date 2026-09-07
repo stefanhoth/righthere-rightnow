@@ -55,7 +55,7 @@ final class BriefingRunOrchestratorProvider
 }
 
 String _$briefingRunOrchestratorHash() =>
-    r'4c218fb2d134ea6fc131a1125e9af8e08e5b1802';
+    r'ce95c09662efedf6fd84b0ec493aa1435ea7f64f';
 
 /// Kept alive: [BuiltInAiEngine] loads and caches the model once inference
 /// is first requested (documented cold start of up to ~10s) -- recreating
