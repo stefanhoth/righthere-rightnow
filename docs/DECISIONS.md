@@ -3,6 +3,10 @@
 Smaller calls that shaped the repo but didn't warrant a full ADR. Newest
 first. Add an entry in the same PR that makes the decision.
 
+## 2026-11-18 — Required checks are not strict
+
+`strict_required_status_checks_policy` is now `false`. With several green PRs open, only the first one to merge won and every other PR had to be updated and run CI again, which cost CI time and waiting for nothing. PR CI already tests the merge ref (the PR plus `main` as it was when CI ran), and CI on every push to `main` catches the rare case where two PRs only break together; a scheduled Claude task fixes a red `main`, failing PRs and merge conflicts.
+
 ## 2026-08-31 — Recurring chores don't ride phantom overdue to the top
 
 A recurring Todoist task ("empty the dishwasher", "weigh in") regenerates on
